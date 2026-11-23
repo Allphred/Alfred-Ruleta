@@ -1,0 +1,679 @@
+/* ════════════════════════════════════════════════════════════════════
+   ESTILOS DE LA RULETA
+   ────────────────────────────────────────────────────────────────────
+   TEMA CLARO por defecto, pensado para clase a la luz del día.
+   El MODO OSCURO se cambia con el BOTÓN DE LA LUNA de la cabecera
+   (junto a "Opciones"): el botón añade data-theme="dark" al <html>
+   y con ello todos los colores de aquí abajo cambian solos.
+
+   Cómo personalizar: cambia las variables de :root (tema claro) y de
+   html[data-theme="dark"] (tema oscuro). Los colores de los segmentos
+   de la rueda están aparte, en js/config.js.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --fondo: #f6f3ec;                /* papel cálido */
+  --panel: #ffffff;                /* tarjetas */
+  --tarjeta-borde: rgba(60, 45, 15, 0.14);
+  --texto: #242b3a;
+  --texto-suave: #6e7787;
+  --acento: #f0b429;               /* dorado: botón Girar, ganador… (el
+                                       selector de la rueda es ROJO: está
+                                       en js/config.js → coloresFlecha) */
+  --acento-texto: #9a6d00;         /* dorado legible sobre fondo claro */
+  --peligro: #e0355b;              /* botón de quitar */
+  --halo-ruleta: rgba(240, 180, 41, 0.14);
+  --radio: 14px;
+}
+
+/* ── Tema oscuro (opcional) ─────────────────────────────────────────── */
+html[data-theme="dark"] {
+  --fondo: #0b1120;
+  --panel: #131c2e;
+  --tarjeta-borde: rgba(255, 255, 255, 0.08);
+  --texto: #e8ecf5;
+  --texto-suave: #97a3b8;
+  --acento-texto: #ffd166;
+  --peligro: #ef4766;
+  --halo-ruleta: rgba(255, 209, 102, 0.06);
+}
+
+
+/* ── Base ──────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 70% -10%, rgba(240, 180, 41, 0.07) 0%, transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(93, 84, 142, 0.05) 0%, transparent 55%),
+    var(--fondo);
+  color: var(--texto);
+  font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(1200px 700px at 70% -10%, #16223c 0%, transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, #101a30 0%, transparent 55%),
+    var(--fondo);
+}
+
+.sr-solo {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+
+/* ── Cabecera ──────────────────────────────────────────────────────── */
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--tarjeta-borde);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+html[data-theme="dark"] .cabecera { background: rgba(11, 17, 32, 0.6); }
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--texto) 0%, var(--acento-texto) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.acciones-cabecera { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── El botón de TEMA (luna/sol) de la cabecera ───────────────────── */
+.boton-tema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;   /* botón de icono: cuadradito */
+  line-height: 0;      /* los SVG no estiran la altura */
+}
+/* El icono clásico: en modo CLARO se ve la LUNA (pulsar → oscuro);
+   en modo OSCURO, el SOL (pulsar → claro). */
+html[data-theme="dark"] .boton-tema .icono-luna { display: none; }
+html:not([data-theme="dark"]) .boton-tema .icono-sol { display: none; }
+
+
+/* ── Botones ───────────────────────────────────────────────────────── */
+.boton {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--tarjeta-borde);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s, background 0.15s;
+}
+.boton:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.boton.sutil {
+  background: rgba(60, 45, 15, 0.06);
+  color: var(--texto);
+}
+.boton.sutil:hover:not(:disabled) { background: rgba(60, 45, 15, 0.13); }
+html[data-theme="dark"] .boton.sutil { background: rgba(255, 255, 255, 0.05); }
+html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+
+.boton.normal {
+  background: var(--acento);
+  color: #201a05;
+  border-color: transparent;
+}
+.boton.normal:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+
+.boton.peligro {
+  background: var(--peligro);
+  color: #fff;
+  border-color: transparent;
+}
+.boton.peligro:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+
+/* ── Distribución principal ────────────────────────────────────────── */
+/* main.principal, con su padding de 70 px tal como se pidió: la rueda
+   respira holgada en la página. (En pantallas pequeñas se estrechan
+   un poco los LATERALES para que quepa: arriba y abajo se respetan.) */
+.principal {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(320px, 1.25fr) minmax(300px, 0.95fr);
+  gap: 18px;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 70px;
+  align-items: start;
+}
+
+.zona-ruleta { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+#contenedorLienzo {
+  position: relative;
+  width: min(100%, 600px);
+  aspect-ratio: 1 / 1;
+  /* La rueda se aparta del texto de la pista de arriba (se pidió 20 px
+     MÁS de separación: la pista es POSICIÓN ABSOLUTA — no ocupa sitio
+     en el flujo y su texto mide ~20 px de alto—, así que este margen
+     le deja a la coronilla de la rueda sus 20 px de aire por debajo
+     del aviso). */
+  margin: 40px auto 0;
+  border-radius: 50%;
+  /* halo suave detrás de la rueda */
+  background: radial-gradient(circle at 50% 50%, var(--halo-ruleta) 0%, transparent 62%);
+  transition: transform 2.4s ease;     /* para el zoom lento del chasquido */
+}
+#contenedorLienzo.zoom-lento { transform: scale(1.05); }
+
+#lienzo { display: block; width: 100%; height: 100%; cursor: pointer; }
+/* Cualquier parte de la rueda se puede tocar para girar (la flecha
+   del cursor lo promete). El "none" deja que la animación del DARDO
+   (animación 17) arrastre con el dedo/tableta sin que la página se
+   ponga a hacer scroll encima. */
+#lienzo { touch-action: none; }
+
+/* Canvas superpuesto donde vuelan las partículas del polvo (anim. 10) */
+#lienzoPolvo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ── LA PISTA DE ARRIBA: "Toca la rueda para girar" ─────────────────
+   Aviso flotante sobre la rueda cuando está en reposo. ES POSICIÓN
+   ABSOLUTA: no ocupa sitio en el flujo, así que su aparición y su
+   desaparición NO MUEVEN NADA — la página ya no "salta" hacia arriba
+   cuando el texto se va (tal como se pidió). Sin pastilla NI contorno:
+   SOLO texto, más grande, con un palpado suave de opacidad para que
+   se destaque sin gritar. Las animaciones con intervención de usuario
+   lo REUTILIZAN para guiar al profesor ("haz click para pararla",
+   "elige un vaso", "agarra el dardo…"). */
+.zona-ruleta { position: relative; }
+
+.pista-rueda {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--texto-suave);
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;   /* es un aviso, no un botón: nunca estorba */
+  z-index: 3;
+  text-shadow: 0 1px 8px var(--fondo);
+  animation: pistaPalpita 2.6s ease-in-out infinite;
+}
+@keyframes pistaPalpita {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.42; }
+}
+
+/* Botón GIRAR: vive en el panel de nombres (bajo de la rueda), como
+   el corazón dorado de siempre — pero sin ocupar el centro de la
+   rueda (tal como se pidió). A lo ancho de la tarjeta, grande y
+   protagonista. */
+.boton-girar {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  background: radial-gradient(circle at 35% 25%, #ffe3a1, #f4a63a 75%);
+  color: #201a05;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.12rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(240, 180, 41, 0.32), inset 0 -4px 10px rgba(120, 70, 0, 0.25);
+  transition: transform 0.15s, filter 0.15s;
+}
+.boton-girar:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+.boton-girar:active:not(:disabled) { transform: scale(0.985); }
+.boton-girar:disabled { filter: grayscale(0.7); opacity: 0.55; cursor: not-allowed; }
+
+.mensaje-estado {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+/* Mientras gira, SOLO la tarjeta de nombres queda congelada: la lista
+   no se toca a media vuelta. TODO lo demás (la tarjeta del ganador con
+   sus botones Conservar/Quitar, las Opciones, el Historial…) sigue
+   siendo clicable siempre. (Antes aquí se congelaba el panel entero y
+   resultaba que ni los botones del ganador respondían.) */
+body.girando .tarjeta-nombres { pointer-events: none; opacity: 0.6; }
+
+
+/* ── Panel lateral ─────────────────────────────────────────────────── */
+.panel { display: flex; flex-direction: column; gap: 14px; }
+
+.tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--tarjeta-borde);
+  border-radius: var(--radio);
+  padding: 16px 18px;
+  box-shadow: 0 2px 10px rgba(50, 40, 10, 0.05);
+}
+html[data-theme="dark"] .tarjeta { box-shadow: none; }
+
+.tarjeta h2 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--texto-suave);
+}
+
+#entradaNombres {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+  color: var(--texto);
+  background: rgba(60, 45, 15, 0.045);
+  border: 1px solid var(--tarjeta-borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+html[data-theme="dark"] #entradaNombres { background: rgba(8, 13, 25, 0.7); }
+#entradaNombres:focus { border-color: var(--acento); outline: none; }
+
+.fila-botones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.contador { color: var(--texto-suave); font-size: 0.88rem; }
+
+
+/* ── TARJETA DEL GANADOR (aparece al lado de la ruleta, sin taparla) ── */
+.tarjeta-ganador { display: none; }
+
+.tarjeta-ganador.visible {
+  display: block;
+  animation: entrarTarjeta 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  background: linear-gradient(180deg, #fff6dd, #fffdf6);
+  border: 1.5px solid #ecc85c;
+}
+html[data-theme="dark"] .tarjeta-ganador.visible {
+  background: linear-gradient(180deg, #2b2412, #1d1a0e);
+  border-color: rgba(255, 209, 102, 0.5);
+}
+
+@keyframes entrarTarjeta {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+}
+
+.etiqueta-anim {
+  display: inline-block;
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acento-texto);
+  background: rgba(240, 180, 41, 0.12);
+  border: 1px solid rgba(154, 109, 0, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+html[data-theme="dark"] .etiqueta-anim {
+  color: var(--acento-texto);
+  border-color: rgba(255, 209, 102, 0.3);
+  background: rgba(255, 209, 102, 0.1);
+}
+
+/* El nombre del ganador: gordo, dorado y en minúsculas como se escribió
+   (la regla .tarjeta h2 de arriba intenta ponerlo gris y en mayúsculas;
+   esta otra, más específica, lo anula). */
+.tarjeta-ganador .nombre-ganador {
+  margin: 0 0 6px;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1.15;
+  word-break: break-word;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #8a6200;
+  text-shadow: 0 2px 14px rgba(240, 180, 41, 0.25);
+}
+html[data-theme="dark"] .tarjeta-ganador .nombre-ganador {
+  color: #ffe3a1;
+  text-shadow: 0 4px 24px rgba(255, 209, 102, 0.35);
+}
+
+.frase { margin: 0 0 4px; color: var(--texto-suave); font-style: italic; }
+.nota { margin: 0 0 4px; color: #2b7fb8; font-size: 0.9rem; }
+html[data-theme="dark"] .nota { color: #8fd0ff; }
+
+.botones-ganador {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.botones-ganador .boton { flex: 1 1 auto; }
+
+.pista-ganador {
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  color: var(--texto-suave);
+  opacity: 0.8;
+}
+
+
+/* ── Opciones (details/summary) ───────────────────────────────────── */
+details.tarjeta > summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+  user-select: none;
+}
+details.tarjeta > summary::-webkit-details-marker { display: none; }
+details.tarjeta > summary::after {
+  content: '▾';
+  float: right;
+  color: var(--texto-suave);
+  transition: transform 0.2s;
+}
+details.tarjeta[open] > summary::after { transform: rotate(180deg); }
+
+.cuerpo-opciones { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; }
+
+fieldset {
+  border: 1px solid var(--tarjeta-borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0;
+}
+legend { font-size: 0.85rem; color: var(--texto-suave); padding: 0 6px; }
+
+.modo-grupo { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.modo-grupo label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+
+.fila-anim-fija { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ayuda { margin: 0; font-size: 0.82rem; color: var(--texto-suave); }
+
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo-linea { flex-direction: row; }
+
+select, input[type="range"] {
+  font: inherit;
+  color: var(--texto);
+  background: rgba(60, 45, 15, 0.045);
+  border: 1px solid var(--tarjeta-borde);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+html[data-theme="dark"] select,
+html[data-theme="dark"] input[type="range"] { background: rgba(8, 13, 25, 0.7); }
+select:focus, input[type="range"]:focus { border-color: var(--acento); outline: none; }
+input[type="range"] { accent-color: var(--acento); padding: 4px 0; }
+output { color: var(--acento-texto); font-weight: 700; }
+
+.oculto { display: none !important; }
+
+
+/* ── Historial ─────────────────────────────────────────────────────── */
+#historial { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+#historial li { font-size: 0.9rem; }
+#historial .meta { display: block; color: var(--texto-suave); font-size: 0.78rem; }
+#historial .vacio { list-style: none; color: var(--texto-suave); margin-left: -20px; }
+
+
+/* ── Capa de partículas: confeti ───────────────────────────────────── */
+#capaParticulas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 60;
+}
+
+.confeti {
+  position: fixed;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  animation: confeti var(--dur, 1.4s) cubic-bezier(0.3, 0.4, 0.6, 1) forwards;
+}
+@keyframes confeti {
+  0% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(var(--dx, 0px), 105vh) rotate(var(--rot, 360deg)); opacity: 0; }
+}
+
+/* Destello del chasquido */
+#destello {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 55;
+  transition: opacity 0.12s ease;
+}
+#destello.activo { opacity: 0.8; }
+
+
+/* ══ ANIMACIÓN 12 · LA BROMA PREMIUM (el anuncio SaaS de mentira) ═══
+   El CLÁSICO modal de "paga para ver tu resultado": capa oscura y
+   tarjeta con TRES planes de pago, su "El más popular" y su letra
+   pequeña. Cuando la ALERTA DEL NAVEGADOR confiesa la broma, la
+   clase .broma-revelada (puesta por js/ui.js) tacha los precios y
+   enciende el banner "gratis para siempre". Todo aquí es de mentira
+   — y se ve de mentira ADREDE: ese es el chiste. */
+#capaPremium {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(94, 84, 142, 0.35), transparent 60%),
+    radial-gradient(700px 420px at 10% 110%, rgba(240, 180, 41, 0.25), transparent 55%),
+    rgba(12, 14, 24, 0.82);
+  animation: entrarPremium 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+@keyframes entrarPremium {
+  from { opacity: 0; transform: scale(1.04); }
+}
+
+.tarjeta-premium {
+  width: min(680px, 100%);
+  max-height: min(92vh, 720px);
+  overflow: auto;
+  background: linear-gradient(180deg, #ffffff, #f4f1ff);
+  border-radius: 18px;
+  padding: 26px 28px 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  position: relative;
+}
+html[data-theme="dark"] .tarjeta-premium {
+  background: linear-gradient(180deg, #1d2236, #14172a);
+  color: #e8ecf5;
+}
+
+.tarjeta-premium.tiembla { animation: tiemblaPremium 0.4s; }
+@keyframes tiemblaPremium {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+
+.tarjeta-premium h3 {
+  margin: 0 0 6px;
+  font-size: clamp(1.3rem, 3.4vw, 1.75rem);
+  color: #242b3a;
+}
+html[data-theme="dark"] .tarjeta-premium h3 { color: #f2f4ff; }
+.tarjeta-premium h3 em { font-style: normal; color: #ef476f; }
+.premium-sub { margin: 0 0 18px; color: #6e7787; font-size: 0.95rem; }
+
+.planes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.plan {
+  border: 1.5px solid rgba(60, 45, 15, 0.14);
+  border-radius: 14px;
+  padding: 16px 14px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+html[data-theme="dark"] .plan {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.plan.destacado {
+  border-color: #f0b429;
+  box-shadow: 0 0 0 3px rgba(240, 180, 41, 0.18);
+}
+.plan h4 { margin: 0; font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; color: #6e7787; }
+.precio {
+  margin: 6px 0 8px;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #242b3a;
+}
+html[data-theme="dark"] .precio { color: #f2f4ff; }
+.precio span { font-size: 0.8rem; font-weight: 600; color: #6e7787; }
+.plan ul { margin: 0 0 12px; padding: 0; list-style: none; font-size: 0.82rem; color: #6e7787; }
+.plan li { padding: 2px 0; }
+.cinta {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f0b429;
+  color: #201a05;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.plan-boton {
+  font: inherit;
+  font-weight: 700;
+  border-radius: 9px;
+  border: none;
+  padding: 9px 14px;
+  cursor: pointer;
+  background: #e7e3f6;
+  color: #444;
+}
+.plan-boton:disabled { opacity: 0.45; cursor: not-allowed; }
+.cta-premium {
+  background: linear-gradient(180deg, #6d5ae0, #5a48c8);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(106, 84, 224, 0.35);
+}
+.cta-premium:hover { filter: brightness(1.06); }
+.aviso-premium {
+  margin: 8px 0 0;
+  font-size: 0.74rem;
+  color: #ef476f;
+  font-weight: 700;
+}
+.letra-pequena {
+  margin: 16px 0 0;
+  font-size: 0.7rem;
+  color: #9aa1b0;
+}
+
+/* — LA CONFESIÓN: el anuncio se avergüenza — cuando la alerta ya
+   contó la broma: precios tachados, plan "destacado" apagado y el
+   botón pasa a ser gratis (la clase la pone js/ui.js). */
+#capaPremium.broma-revelada .precio { text-decoration: line-through; opacity: 0.45; }
+#capaPremium.broma-revelada .plan.destacado { border-color: rgba(60, 45, 15, 0.14); box-shadow: none; }
+#capaPremium.broma-revelada .cinta { background: #b9b3d6; color: #444; }
+#capaPremium.broma-revelada .tarjeta-premium::before {
+  content: 'ES BROMA — esto es y siempre será GRATIS';
+  display: block;
+  margin: -6px 0 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #2b8a5d;
+  color: #eafff3;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+#capaPremium.broma-revelada .cta-premium {
+  background: linear-gradient(180deg, #ffd166, #f4a63a);
+  color: #201a05;
+  box-shadow: 0 6px 18px rgba(240, 180, 41, 0.4);
+}
+
+
+/* ── Pie ───────────────────────────────────────────────────────────── */
+.pie {
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  border-top: 1px solid var(--tarjeta-borde);
+}
+
+
+/* ── Pantalla completa: rueda más grande para proyectar ─────────────── */
+:fullscreen #contenedorLienzo { width: min(70vh, 660px); }
+
+
+/* ── Móvil ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .principal {
+    grid-template-columns: 1fr;
+    padding: 70px 16px;   /* arriba y abajo, los 70 px de siempre;
+                            a los lados, lo justo para que quepa */
+    gap: 14px;
+  }
+  #contenedorLienzo { width: min(100%, 440px); }
+  .cabecera { padding: 12px 14px; }
+}

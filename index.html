@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruleta</title>
+<meta name="description" content="Ruleta de nombres para clase: clásica y con diecinueve animaciones sorpresa — casino con su música de salón, la que se deshace en polvo, el juego de los vasos sobre su mesa, la DIANA Y EL DARDO que lanza el profesor, LOS FRENOS DAÑADOS que hay que frenar a mano con la flecha… y EL ABANICO AVERIADO que hay que arrancarle a mano girándole las aspas. 100% estática, sin backend.">
+
+<!--
+  ══════════════════════════════════════════════════════════════════
+  RULETA — GUÍA RÁPIDA
+  ══════════════════════════════════════════════════════════════════
+
+  QUÉ ES
+  Una ruleta de nombres 100 % estática (HTML + CSS + JS puro, sin
+  frameworks, sin backend, sin internet). Tema claro de serie y modo
+  oscuro opcional (el botón de la LUNA de la cabecera, junto a
+  Opciones). Se gira TOCANDO CUALQUIER PARTE DE LA RUEDA (la pista de
+  arriba lo recuerda) o con el botón Girar del panel.
+  Modos de giro:
+    · "Normal"      → el giro clásico de siempre, sin sorpresas.
+    · Realmente normal → LA PROGRESIÓN: la PRIMERA tirada es
+                     SIEMPRE la animación normal; cada persona QUITADA
+                     con "Quitar de la ruleta" adelanta un grupo —
+                     errores suaves (la flecha que gira, la probabilidad
+                     multiplicada, la rueda que se desarma, la parada
+                     falsa) → bromas (el motor dañado en sus DOS
+                     variantes, la tensión decisiva, el retroceso) →
+                     creativas (el casino, acelera en vez de frenar, la
+                     diana y el dardo…) → desvíos (sin girar, el
+                     chasquido Infinity, los vasos, la premium).
+                     Conservar y volver a girar NO repite la animación.
+    · Random         → literalmente random: un MAZO con las 19
+                     animaciones, sin orden y SIN REPETIR hasta
+                     agotarse (luego se rebaraja solo).
+    · Elegir animación → fuerza una concreta (útil para probarlas).
+
+  Las 19 animaciones incluyen: paradas falsas, tensión decisiva con
+  choque, la flecha que gira, el chasquido estilo Infinity War, la
+  RULETA DE CASINO —con su música de salón (el Nocturno de salón:
+  jazz lento y cálido) y su fanfarria de victoria—, la voladora… y
+  las nuevas: el MOTOR DAÑADO, que acelera sin parar hasta que tocas
+  la bolita del motor para apagarlo; EL ABANICO AVERIADO ("ayúdala a
+  girar"): suena un corto eléctrico, la ruleta penando con su sonido
+  de abanico dañado… y HAY QUE ARRANCÁRSELA A MANO, girándole las
+  aspas con el ratón o el dedo, hasta que el motor agarra y el
+  abanico se cura; la BROMA PREMIUM estilo SaaS (tapa la pantalla
+  ANTES de verse el resultado), la que ACELERA Y PARA EN SECO, los
+  SELECTORES que nacen y se caen (sobrevive uno AL AZAR), el JUEGO DE
+  LOS VASOS —los segmentos se CONVIERTEN de verdad en bolitas, mesa
+  de madera—, la que ARRANCA, SE AVERÍA y SE DESARMA a pedazos (cada
+  pedazo con su sonido)… y DIANA Y DARDO… y LOS FRENOS DAÑADOS: la
+  rueda gira sin parar y solo la FLECHA la frena (a una marcha ya
+  amable: 2 vueltas/s, para que se LEAN los nombres), con frenazo
+  dramático de auto.
+
+  En Opciones hay tres deslizadores para el carácter del giro:
+    · Duración  → segundos (12 de serie).
+    · Velocidad → multiplicador de vueltas (×1.5 de serie).
+    · Aceleración → cómo de brusco arranca (×1.5 de serie).
+
+  CÓMO PUBLICARLA EN GITHUB (y obtener el enlace):
+    1. Crea un repositorio en github.com (público).
+    2. Sube estos archivos TAL CUAL, en la raíz:
+         index.html, styles.css y la carpeta js/ completa.
+    3. En el repositorio: Settings → Pages → Source:
+       "Deploy from a branch" → rama "main", carpeta "/ (root)" → Save.
+    4. En un minuto tendrás el enlace:
+         https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/
+       Ese es el enlace que compartes con otros profesores.
+    (También funciona con doble clic en index.html, sin internet.)
+  DÓNDE CAMBIAR PARÁMETROS
+    · js/config.js     → colores, duración, volumen, tamaño de la flecha,
+                        clavijas, polvo, multiplicador de probabilidad…
+    · js/animations.js → los tiempos y vueltas de CADA animación.
+    · styles.css       → el aspecto (tema claro y oscuro, tarjetas…).
+
+  TRUCOS DE PRUEBA (parámetros de la URL)
+    · ?anim=11      → fuerza la animación 11 (números del 1 al 19)
+                       (9 = casino, 11 = motor dañado, 12 = premium,
+                        15 = juego de los vasos, 16 = se desarma,
+                        17 = diana y dardo, 18 = frenos dañados,
+                        19 = el abanico averiado que se gira a mano)
+    · ?rapido=1      → todo dura una fracción, para probar rápido
+    · ?nombres=A|B|C → rellena la lista de una vez
+
+  Los nombres y ajustes se guardan solos en el navegador (localStorage),
+  así que la lista sigue ahí al día siguiente.
+  ══════════════════════════════════════════════════════════════════
+-->
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <h1>Ruleta</h1>
+  <div class="acciones-cabecera">
+    <button id="btnOpciones" type="button" class="boton sutil">Opciones</button>
+    <!-- El TEMA vive aquí, junto a Opciones (se pidió sacarlo del panel):
+         icono clásico de LUNA en modo claro (pulsar → oscuro) y de SOL
+         en modo oscuro (pulsar → claro). El CSS muestra uno u otro
+         según data-theme. -->
+    <button id="btnTema" type="button" class="boton sutil boton-tema"
+      aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+      <svg class="icono-luna" viewBox="0 0 24 24" width="18" height="18" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      <svg class="icono-sol" viewBox="0 0 24 24" width="18" height="18" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+    <button id="btnPantallaCompleta" type="button" class="boton sutil" aria-label="Pantalla completa" title="Pantalla completa (ideal para proyectar)">Pantalla completa</button>
+  </div>
+</header>
+
+<main class="principal">
+
+  <!-- ── Zona de la ruleta ─────────────────────────────────────── -->
+  <section class="zona-ruleta" aria-label="Ruleta">
+    <!-- La pista de arriba: "Toca la rueda para girar" (también la
+         usan las animaciones con intervención de usuario: freno
+         dañado, juego de los vasos…). -->
+    <p id="pistaRueda" class="pista-rueda oculto" aria-live="polite">Toca la rueda para girar</p>
+    <div id="contenedorLienzo">
+      <canvas id="lienzo" aria-label="Rueda de la ruleta"></canvas>
+      <canvas id="lienzoPolvo" aria-hidden="true"></canvas>
+    </div>
+    <p id="mensajeEstado" class="mensaje-estado" aria-live="polite"></p>
+  </section>
+
+  <!-- ── Panel lateral (al lado de la ruleta) ──────────────────── -->
+  <aside class="panel">
+
+    <!-- TARJETA DEL GANADOR: aparece aquí, junto a la rueda, sin
+         taparla ni difuminarla. Mientras esté abierta, la rueda sigue
+         bien visible con su segmento latiendo. -->
+    <section id="tarjetaGanador" class="tarjeta tarjeta-ganador" aria-label="Ganador" aria-live="polite">
+      <p id="etiquetaAnim" class="etiqueta-anim"></p>
+      <h2 id="nombreGanador" class="nombre-ganador"></h2>
+      <p id="fraseAnim" class="frase"></p>
+      <p id="notaAnim" class="nota oculto"></p>
+      <div id="botonesGanador" class="botones-ganador"></div>
+      <p class="pista-ganador">Esc o Espacio conserva el nombre.</p>
+    </section>
+
+    <section class="tarjeta tarjeta-nombres" aria-label="Participantes">
+      <h2>Nombres</h2>
+      <label class="sr-solo" for="entradaNombres">Nombres, uno por línea</label>
+      <textarea id="entradaNombres" rows="6" spellcheck="false"
+        placeholder="Escribe un nombre por línea…&#10;&#10;Ana&#10;Luis&#10;María"></textarea>
+      <div class="fila-botones">
+        <button id="btnActualizar" type="button" class="boton normal">Actualizar ruleta</button>
+        <span id="contadorNombres" class="contador"></span>
+      </div>
+      <!-- El botón GIRAR ya no vive en el centro de la rueda: es parte
+           del panel, a pie de la lista de nombres (tal como se pidió). -->
+      <button id="btnGirar" type="button" class="boton-girar" aria-label="Girar la ruleta">Girar</button>
+    </section>
+
+    <!-- Panel de opciones (plegable) -->
+    <details id="panelOpciones" class="tarjeta panel-opciones">
+      <summary>Opciones</summary>
+      <div class="cuerpo-opciones">
+
+        <fieldset>
+          <legend>Modo de giro</legend>
+          <div class="modo-grupo" role="radiogroup" aria-label="Modo de giro">
+            <!-- Los nombres son cosa del profesor: el giro clásico se
+                 llama "Normal" (CON las comillas bien visibles); el modo
+                 sorpresa con su PROGRESIÓN DE GRUPOS se llama
+                 "Realmente normal" (la 1.ª tirada es SIEMPRE normal; cada
+                 persona quitada adelanta un grupo; conservar y repetir
+                 NO repite animación); el RANDOM es un mazo con TODAS,
+                 sin orden ni repetición; y el de siempre para probar:
+                 "Elegir animación". -->
+            <label><input type="radio" name="modo" value="clasico"> “Normal”</label>
+            <label><input type="radio" name="modo" value="sorpresa"> Realmente normal</label>
+            <label><input type="radio" name="modo" value="aleatorio"> Random (sin repetir)</label>
+            <label><input type="radio" name="modo" value="fija"> Elegir animación</label>
+          </div>
+          <!-- Cuenta viva de la progresión (o de lo que queda del mazo
+               Random): la escribe js/ui.js → actualizarEtiquetaProgresion. -->
+          <p id="etiquetaProgresion" class="ayuda"></p>
+          <div id="filaAnimFija" class="fila-anim-fija oculto">
+            <label for="seleccionAnimacion">Animación</label>
+            <select id="seleccionAnimacion"></select>
+            <p id="descripcionAnim" class="ayuda"></p>
+          </div>
+        </fieldset>
+
+        <div class="campo">
+          <label for="rangoDuracion">Duración del giro: <output id="valorDuracion">12 s</output></label>
+          <input type="range" id="rangoDuracion" min="3" max="20" step="0.5" value="12">
+        </div>
+
+        <div class="campo">
+          <label for="rangoVelocidad">Velocidad de giro: <output id="valorVelocidad">×1.5</output></label>
+          <input type="range" id="rangoVelocidad" min="0.5" max="3" step="0.1" value="1.5">
+        </div>
+
+        <div class="campo">
+          <label for="rangoAceleracion">Aceleración: <output id="valorAceleracion">×1.5</output></label>
+          <input type="range" id="rangoAceleracion" min="0.5" max="3" step="0.1" value="1.5">
+          <p class="ayuda">La velocidad añade vueltas por giro; la aceleración hace el arranque más brusco (×3) o más suave (×0.5).</p>
+        </div>
+
+        <div class="campo">
+          <label for="seleccionAlElegir">Al elegir a alguien</label>
+          <select id="seleccionAlElegir">
+            <option value="preguntar">Preguntar si conservarlo o quitarlo</option>
+            <option value="quitar">Quitarlo de la ruleta automáticamente</option>
+            <option value="conservar">Conservarlo siempre</option>
+          </select>
+        </div>
+
+        <div class="campo campo-linea">
+          <label><input type="checkbox" id="checkSonido" checked> Sonido (tics de la ruleta y fanfarria)</label>
+        </div>
+
+        <!-- La MÚSICA DEL CASINO no tiene botón: se pidió volver al
+             tema de SIEMPRE (el swing de Las Vegas), que suena solo
+             en la animación 9, sin selector alguno. -->
+
+        <!-- El MODO OSCURO ya no vive aquí: se pidió el botón de la
+             LUNA en la cabecera, junto a "Opciones" (arriba). -->
+
+      </div>
+    </details>
+
+    <details class="tarjeta" aria-label="Historial de ganadores">
+      <summary>Historial</summary>
+      <div class="cuerpo-opciones">
+        <ol id="historial"></ol>
+        <button id="btnLimpiarHistorial" type="button" class="boton sutil">Limpiar historial</button>
+      </div>
+    </details>
+
+  </aside>
+</main>
+
+<footer class="pie">
+  Hecha por la IA y Alfred P.J
+</footer>
+
+<!-- Capas de efectos (confeti, destello) -->
+<div id="capaParticulas" aria-hidden="true"></div>
+<div id="destello" aria-hidden="true"></div>
+
+<!-- Orden de carga importante: config → sonido → animaciones → motor → ui -->
+<script src="js/config.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/motor.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
