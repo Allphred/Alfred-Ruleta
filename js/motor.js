@@ -386,15 +386,37 @@ const Motor = {
     }
     if (colores && colores.length === lista.length) {
       est.colores = colores.slice();
-      return;
+    } else {
+      const p = CONFIG.paleta.length;
+      est.colores = lista.map((_, i) => CONFIG.paleta[i % p]);
+      // Si el primer y el último segmento coincidieran en color (quedarían
+      // "pegados" al cerrar el círculo), recolorea el último.
+      if (lista.length > 1 && est.colores[0] === est.colores[lista.length - 1]) {
+        est.colores[lista.length - 1] = CONFIG.paleta[lista.length % p];
+      }
     }
-    const p = CONFIG.paleta.length;
-    est.colores = lista.map((_, i) => CONFIG.paleta[i % p]);
-    // Si el primer y el último segmento coincidieran en color (quedarían
-    // "pegados" al cerrar el círculo), recolorea el último.
-    if (lista.length > 1 && est.colores[0] === est.colores[lista.length - 1]) {
-      est.colores[lista.length - 1] = CONFIG.paleta[lista.length % p];
+
+    // ── LAS TIRAS (para la animación 20 — el GAJO GIGANTE) ────────
+    // Ranuras SEGUIDAS con el MISMO nombre y color se FUSIONAN en el
+    // dibujo: se pintan como UN SOLO segmento (borde y nombre
+    // únicos, el nombre escrito UNA sola vez en el centro del gajo) y
+    // las fronteras INTERNAS de una tira NO ticnean (no hay clavija
+    // dentro del gajo gigante). En una rueda normal todas las tiras
+    // miden 1 y todo se dibuja EXACTAMENTE como siempre.
+    const runDe = new Array(lista.length);
+    const runs = [];
+    for (let i = 0; i < lista.length; i++) {
+      if (i > 0 && runs.length > 0 &&
+          lista[i] === lista[i - 1] && est.colores[i] === est.colores[i - 1]) {
+        runDe[i] = runDe[i - 1];
+        runs[runDe[i]].len++;
+      } else {
+        runDe[i] = runs.length;
+        runs.push({ ini: i, len: 1 });
+      }
     }
+    est.runDe = runDe;
+    est.runs = runs;
   },
 
   // El ángulo crece sin límite entre giro y giro: se renormaliza al final
@@ -409,6 +431,15 @@ const Motor = {
     const s = TAU / n;
     const ref = est.flechaEnOrbita ? est.anguloFlecha : ANGULO_FLECHA_TOPE;
     return Math.floor(norm(ref - est.anguloRueda) / s) % n;
+  },
+
+  // ¿La frontera entre las ranuras a y b es de VERDAD? (Las internas
+  // de una TIRA fusionada — el gajo gigante de la animación 20 — no
+  // existen: no hay clavija ahí y ningún tic debe sonar.)
+  _fronteraReal(a, b) {
+    const runDe = this.estado.runDe;
+    if (!runDe) return true;   // rueda sin fusiones: todas son reales
+    return runDe[a] !== runDe[b];
   },
 
 
@@ -581,7 +612,10 @@ const Motor = {
       // su velocidad constante no es dramática y el tic-tac rápido
       // le queda perfecto — es la gracia: una ruleta que no acaba).
       const idx = this.indiceBajoFlecha();
-      if ((ticsSiempre || v < TAU * 1.05) && ctrl.idxPrevio != null && idx !== ctrl.idxPrevio) {
+      // (y solo en fronteras de verdad: dentro del gajo gigante no hay
+      //  clavija — la tira fusionada no suena al cruzarse a sí misma)
+      if ((ticsSiempre || v < TAU * 1.05) && ctrl.idxPrevio != null &&
+          idx !== ctrl.idxPrevio && this._fronteraReal(idx, ctrl.idxPrevio)) {
         Sonido.tic();
       }
       ctrl.idxPrevio = idx;
@@ -1465,7 +1499,9 @@ const Motor = {
         }
         if (!sinTics) {
           const idx = this.indiceBajoFlecha();
-          if (idxPrevio !== null && idx !== idxPrevio) {
+          // solo suena el tic si la frontera cruzada es de VERDAD (las
+          // internas del gajo gigante fusionado no existen: no ticnean)
+          if (idxPrevio !== null && idx !== idxPrevio && this._fronteraReal(idx, idxPrevio)) {
             this._tic(Math.sign(hasta - desde));
           }
           idxPrevio = idx;
@@ -1547,18 +1583,36 @@ const Motor = {
       const ghosts = difuso ? [-0.82, -0.3, 0.3, 0.82] : [0];
       const desfase = est.velAng / 60;    // rad que corre la rueda por frame
 
+      // LAS UNIDADES de dibujo: las TIRAS de construir() (para la
+      // animación 20, el gajo gigante: ranuras contiguas iguales
+      // fusionadas en UN segmento). En una rueda normal todas miden 1
+      // y esto es EXACTAMENTE el dibujo de siempre.
+      const unidades = [];
+      for (const run of est.runs) {
+        if (run.len > 1) {
+          // (si algún pedazo de la tira ya voló —no pasa con la 20, pero
+          //  por si acaso— se dibuja ranura a ranura, sin fusionar)
+          let volada = false;
+          for (let k = 0; k < run.len; k++) if (ex.has(run.ini + k)) { volada = true; break; }
+          if (!volada) { unidades.push(run); continue; }
+          for (let k = 0; k < run.len; k++) unidades.push({ ini: run.ini + k, len: 1 });
+          continue;
+        }
+        unidades.push(run);
+      }
+
       // Segmentos: a velocidad turbo se dibujan como ESTELAS (difuminado
       // de movimiento: 4 copias semitransparentes desplazadas lo que la
       // rueda avanza por fotograma — se ve MÁS rápido de lo que es).
-      for (let i = 0; i < n; i++) {
-        if (ex.has(i)) continue;
-        const a0 = est.anguloRueda + i * s;
+      for (const u of unidades) {
+        if (ex.has(u.ini)) continue;
+        const a0 = est.anguloRueda + u.ini * s;
         for (const g of ghosts) {
           c.beginPath(); c.moveTo(0, 0);
-          c.arc(0, 0, r, a0 + g * desfase, a0 + g * desfase + s);
+          c.arc(0, 0, r, a0 + g * desfase, a0 + g * desfase + u.len * s);
           c.closePath();
           c.globalAlpha = difuso ? 0.4 : 1;
-          c.fillStyle = est.colores[i];
+          c.fillStyle = est.colores[u.ini];
           c.fill();
         }
       }
@@ -1576,11 +1630,12 @@ const Motor = {
       }
       if (!difuso) {
         // bordes solo nítidos (con el difuminado estroboscopían):
-        // color del FONDO — las separaciones son "negativas"
-        for (let i = 0; i < n; i++) {
-          if (ex.has(i)) continue;
-          const a0 = est.anguloRueda + i * s;
-          c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, a0, a0 + s); c.closePath();
+        // color del FONDO — las separaciones son "negativas" (en el
+        // gajo gigante SOLO hay dos bordes: los del gajo entero)
+        for (const u of unidades) {
+          if (ex.has(u.ini)) continue;
+          const a0 = est.anguloRueda + u.ini * s;
+          c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, a0, a0 + u.len * s); c.closePath();
           c.strokeStyle = this._bordeSegmentos();
           c.lineWidth = CONFIG.grosorBordeSegmentos;
           c.stroke();
@@ -1599,23 +1654,27 @@ const Motor = {
           c.textBaseline = 'middle';
           c.globalAlpha = alfaTexto;
           const maxW = r * 0.52;
-          for (let i = 0; i < n; i++) {
-            if (ex.has(i)) continue;
+          // (por TIRAS: el del gajo gigante va UNA sola vez, en el
+          //  centro del gajo — no repetido en cada ranura)
+          for (const u of unidades) {
+            if (ex.has(u.ini)) continue;
             c.save();
-            c.rotate(est.anguloRueda + (i + 0.5) * s);
-            c.fillText(ajustarTexto(c, est.lista[i], maxW), r - 12, 0);
+            c.rotate(est.anguloRueda + (u.ini + u.len / 2) * s);
+            c.fillText(ajustarTexto(c, est.lista[u.ini], maxW), r - 12, 0);
             c.restore();
           }
           c.globalAlpha = 1;
         }
       }
 
-      // Segmento resaltado (late) — si aún no salió volando
+      // Segmento resaltado (late) — si aún no salió volando (en el
+      // gajo gigante late el GAJO ENTERO: la tira completa)
       if (est.resaltadoIdx != null && est.resaltadoIdx < n && !ex.has(est.resaltadoIdx)) {
-        const i = est.resaltadoIdx;
-        const a0 = est.anguloRueda + i * s;
+        const runDe = est.runDe;
+        const u = runDe ? est.runs[runDe[est.resaltadoIdx]] : { ini: est.resaltadoIdx, len: 1 };
+        const a0 = est.anguloRueda + u.ini * s;
         const pulso = 0.30 + 0.25 * Math.sin(performance.now() / 1000 * Math.PI * 2 * 1.6);
-        c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, a0, a0 + s); c.closePath();
+        c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, a0, a0 + u.len * s); c.closePath();
         c.fillStyle = `rgba(255, 255, 255, ${Math.max(0, pulso).toFixed(3)})`;
         c.fill();
       }
@@ -1637,17 +1696,19 @@ const Motor = {
         c.beginPath(); c.arc(0, 0, r + 0.8, 0, TAU); c.stroke();
       }
 
-      // ── CLAVIJAS: un remache en cada frontera entre segmentos ────
+      // ── CLAVIJAS: un remache en cada frontera ENTRE segmentos ───
       // (pegadas al borde de la rueda, o en el aro si lo hay). Durante
       // el polvo no hace falta ocultarlas: la malla de granos las cubre.
       // Ni a velocidad turbo (estropearían el difuminado) ni si su
       // segmento (o el vecino) ya salió volando (animación 10).
+      // (En el gajo gigante SOLO hay clavijas en sus DOS bordes: las
+      //  fronteras internas de la tira no existen.)
       if (CONFIG.mostrarClavijas && n <= CONFIG.maxClavijas && !difuso) {
         const rp = this._radioClavijas();          // viven junto al borde
         const radioClavija = Math.max(2.4, Math.min(4.4, s * r * 0.045));
-        for (let i = 0; i < n; i++) {
-          if (ex.has(i) || ex.has((i - 1 + n) % n)) continue;
-          const ang = est.anguloRueda + i * s;
+        for (const u of unidades) {
+          if (ex.has(u.ini) || ex.has((u.ini - 1 + n) % n)) continue;
+          const ang = est.anguloRueda + u.ini * s;
           const px = Math.cos(ang) * rp, py = Math.sin(ang) * rp;
           // sombra de la cabeza del remache
           c.beginPath();
@@ -2411,8 +2472,11 @@ const Motor = {
             b.y += b.vy * dt;
             if (b.y >= sueloY - b.r) {
               b.y = sueloY - b.r;
+              // SE PIDIÓ: el sonido de las BOLAS TOCANDO EL SUELO — cada
+              // bote suena a bolita de verdad (el "toc" agudo de siempre
+              // era genérico; este es de bolita)
               if (b.vy > 90) {
-                Sonido.golpe(0.08 + Math.min(0.1, b.vy / 2500));
+                Sonido.bolitaSuelo(Math.min(1, b.vy / 900));
                 b.vy = -b.vy * e;
               } else b.vy = 0;
               b.vx *= 0.80;
@@ -2580,7 +2644,7 @@ const Motor = {
           bE.y += bE.vy * dt;
           if (bE.y >= sueloY - bE.r) {
             bE.y = sueloY - bE.r;
-            if (bE.vy > 90) { Sonido.golpe(0.1); bE.vy = -bE.vy * 0.4; }
+            if (bE.vy > 90) { Sonido.bolitaSuelo(0.5); bE.vy = -bE.vy * 0.4; }
             else bE.vy = 0;
           }
           // los demás vasos se asoman a los 0.7 s

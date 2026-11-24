@@ -216,24 +216,37 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
   left: 0;
   right: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 8px;
   background: none;
   border: none;
   color: var(--texto-suave);
-  font-size: 1.06rem;
-  font-weight: 700;
+  /* ×1.5 MÁS GRANDE (se pidió: 1.06rem → 1.6rem) — alguien no vio el
+     mensaje y ahora no puede perdérselo: peso máximo y parpadeo
+     marcado. */
+  font-size: 1.6rem;
+  font-weight: 800;
   letter-spacing: 0.03em;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.25;
   pointer-events: none;   /* es un aviso, no un botón: nunca estorba */
   z-index: 3;
-  text-shadow: 0 1px 8px var(--fondo);
-  animation: pistaPalpita 2.6s ease-in-out infinite;
+  text-shadow: 0 1px 2px var(--fondo), 0 2px 12px var(--fondo);
+  /* parpadeo MÁS notorio (se pidió: se destacara más): baja hasta el
+     30 % de opacidad y el ciclo es más corto — imposible no verlo */
+  animation: pistaPalpita 1.4s ease-in-out infinite;
 }
 @keyframes pistaPalpita {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.42; }
+  50% { opacity: 0.3; }
 }
+
+/* LOS COLORES DE PRUEBA (se pidió): los textos de ERROR en ROJO y
+   los de ADVERTENCIA en ÁMBAR — los pinta setPista (js/ui.js) según
+   la primera palabra del mensaje. Legibles en claro y en oscuro. */
+.pista-rueda.pista-error { color: #cf2c32; }
+.pista-rueda.pista-advertencia { color: #a86500; }
+html[data-theme="dark"] .pista-rueda.pista-error { color: #ff8085; }
+html[data-theme="dark"] .pista-rueda.pista-advertencia { color: #ffc24d; }
 
 /* Botón GIRAR: vive en el panel de nombres (bajo de la rueda), como
    el corazón dorado de siempre — pero sin ocupar el centro de la
@@ -273,6 +286,13 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
    siendo clicable siempre. (Antes aquí se congelaba el panel entero y
    resultaba que ni los botones del ganador respondían.) */
 body.girando .tarjeta-nombres { pointer-events: none; opacity: 0.6; }
+
+/* LA REGLA DE LOS TRES CLICS (animación 22 — "A la tercera se
+   desarma"): mientras esa animación espera sus clics, el botón GIRAR
+   tiene que seguir VIVO — sus pulsaciones también cuentan (clic de
+   rueda, botón o barra espaciadora: cualquiera vale). La clase la pone
+   js/ui.js solo en esa animación. */
+body.girando.cuenta-clics .tarjeta-nombres { pointer-events: auto; opacity: 1; }
 
 
 /* ── Panel lateral ─────────────────────────────────────────────────── */

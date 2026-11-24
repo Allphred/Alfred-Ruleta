@@ -50,13 +50,16 @@ const Estado = {
 
   // ── LA PROGRESIÓN POR GRUPOS (modo "Realmente normal") ────────
   // Cuántas personas se han QUITADO con el botón "Quitar de la ruleta"
-  // (así, y solo así, se avanza de grupo — conservar no cuenta)… y qué
-  // animaciones ya sonaron en la progresión actual (para que "el puntero
-  // es el que gira" no repita en las creativas si ya salió en los errores
-  // suaves). Se guarda entre sesiones (los nombres también se guardan:
-  // la clase de ayer no empieza de cero tras un cierre accidental).
+  // (así, y solo así, se avanza de grupo — conservar no cuenta)… qué
+  // animaciones ya sonaron en la progresión actual… y QUÉ ANIMACIÓN
+  // del grupo actual toca ya: dentro de un grupo se va EN ORDEN (la
+  // "siguiente de la lista"), sin repetir hasta agotarlo. Se guarda
+  // entre sesiones (los nombres también se guardan: la clase de ayer
+  // no empieza de cero tras un cierre accidental).
   eliminadas: 0,
   vistas: [],
+  grupoActual: null,   // el nombre del grupo que suena ahora…
+  punteroGrupo: 0,     // …y qué animación de SU lista toca ya
 
   // ── EL MAZO del modo "Random" ───────────────────────────────
   // Ids de las animaciones que faltan por salir: se baraja entero y se
@@ -72,6 +75,13 @@ const Estado = {
    espaciadora no hay clic: vale null (el desarme arranca por donde
    esté la flecha). */
 let clicGiro = null;
+
+/* ── "A LA TERCERA SE DESARMA" (animación 22): clics que cuentan ──
+   Mientras esa animación espera sus tres clics, VALEN COMO CLIC tanto
+   un clic sobre la RUEDA como una pulsación del botón GIRAR (o la
+   barra espaciadora). Este resolver vive pendiente mientras se espera
+   una de ellas — lo llena ctx.esperarClicOGirar (crearContexto). */
+let clicGirarPendiente = null;
 
 /* ── Parámetros de la URL ───────────────────────────────────────────── */
 const PARAMS = new URLSearchParams(location.search);
@@ -133,6 +143,8 @@ function guardar() {
       historial: Estado.historial,
       eliminadas: Estado.eliminadas,      // la progresión de grupos (modos)
       vistas: Estado.vistas,
+      grupoActual: Estado.grupoActual,    // …y qué animación toca ya
+      punteroGrupo: Estado.punteroGrupo,
       mazo: Estado.mazo,                  // el mazo del modo Random
     }));
   } catch (e) { /* sin almacenamiento disponible: la app funciona igual */ }
@@ -169,6 +181,12 @@ function setPista(texto) {
   if (!pistaRueda) return;
   if (!texto) { pistaRueda.classList.add('oculto'); return; }
   pistaRueda.textContent = texto;
+  // LOS COLORES DE PRUEBA (se pidió): los mensajes que empiezan con
+  // "Error:" salen en ROJO y los que empiezan con "Advertencia:" en
+  // ÁMBAR — se colorean solos por la primera palabra.
+  pistaRueda.classList.remove('pista-error', 'pista-advertencia');
+  if (/^\s*error/i.test(texto)) pistaRueda.classList.add('pista-error');
+  else if (/^\s*advertencia/i.test(texto)) pistaRueda.classList.add('pista-advertencia');
   pistaRueda.classList.remove('oculto');
 }
 
@@ -230,14 +248,29 @@ function actualizarContador() {
    ELECCIÓN DE LA ANIMACIÓN SEGÚN EL MODO
    ─────────────────────────────────────────────────────────────────
    · "Normal"            → la clásica de siempre, sin sorpresas.
-   · "Realmente normal"  → LA PROGRESIÓN POR GRUPOS: la 1.ª tirada es
-     SIEMPRE completamente normal (la clásica); cada persona QUITADA
-     con "Quitar de la ruleta" adelanta un grupo (errores suaves →
-     bromas → creativas → desvíos); conservar y volver a girar NO
-     repite la misma animación (otra random del grupo actual).
+   · "Realmente normal"  → LA PROGRESIÓN POR GRUPOS (la tabla vive en
+     CONFIG.gruposAnimaciones, js/config.js — AHÍ SE CAMBIA EL ORDEN):
+     la 1.ª tirada es SIEMPRE la normal; cada persona QUITADA avanza
+     al siguiente grupo NO VACÍO; conservar y volver a girar suena la
+     SIGUIENTE animación de la lista del grupo actual, EN ORDEN y sin
+     repetir hasta agotar el grupo; el último grupo ("El resto")
+     baraja cualquier animación no vista… y vistas todas, todas.
    · "Random"            → literalmente random: un mazo barajado con
      TODAS, sin orden y SIN REPETIR hasta agotarse.
    · "Elegir animación"  → siempre la del desplegable. */
+
+// ¿Esta animación puede salir HOY? (la DIANA Y EL DARDO —la 17— pide
+// 4 o más nombres: con 2-3 queda fea, tal como se pidió)
+function animDisponible(a) {
+  return Estado.nombres.length >= (a.minNombres || 1);
+}
+
+// Todas las animaciones que HOY pueden salir (habilitadas y con su
+// mínimo de nombres cumplido) — lo usan el mazo Random y "El resto".
+function todasLasAnims() {
+  return ANIMACIONES.filter(a => a.habilitada !== false && animDisponible(a));
+}
+
 function elegirAnimacion() {
   const modo = Estado.ajustes.modo;
 
@@ -253,8 +286,14 @@ function elegirAnimacion() {
     // sin orden y sin repetir hasta agotarse; luego se rebaraja solo —
     // y la mano nueva nunca EMPIEZA por la que acababa de sonar.
     if (!Array.isArray(Estado.mazo)) Estado.mazo = [];
+    // Las que HOY no pueden salir (la diana con menos de 4 nombres) se
+    // sacan del mazo: no sonarán esta mano (la diana sin 4+ queda fea).
+    Estado.mazo = Estado.mazo.filter(id => {
+      const a = ANIMACIONES.find(x => x.id === id);
+      return a && a.habilitada !== false && animDisponible(a);
+    });
     if (Estado.mazo.length === 0) {
-      Estado.mazo = ANIMACIONES.map(a => a.id);
+      Estado.mazo = todasLasAnims().map(a => a.id);
       for (let i = Estado.mazo.length - 1; i > 0; i--) {   // Fisher-Yates
         const j = enteroAleatorio(i + 1);
         const tmp = Estado.mazo[i]; Estado.mazo[i] = Estado.mazo[j]; Estado.mazo[j] = tmp;
@@ -276,32 +315,57 @@ function elegirAnimacion() {
     return elegida;
   }
 
-  // Modo 'sorpresa' ("Realmente normal"): LA PROGRESIÓN POR GRUPOS.
+  // ── Modo 'sorpresa' ("Realmente normal"): LA PROGRESIÓN POR GRUPOS ──
   // Sin ninguna eliminación, la tirada es COMPLETAMENTE normal — siempre.
+  const GRUPOS = CONFIG.gruposAnimaciones;
   const eli = Estado.eliminadas || 0;
   if (eli <= 0) {
     Estado.ultimaAnim = ANIMACIONES[0];
     return ANIMACIONES[0];
   }
-  const grupo = GRUPOS_ANIM[Math.min(GRUPOS_ANIM.length, eli) - 1];
+
+  // La CADENA de grupos jugables: los de la tabla SIN el primero (el
+  // "Normal" — ese es el arranque de toda partida) ni los VACÍOS (el
+  // "Bromista" de hoy está vacío a propósito: se salta solo) ni el
+  // "resto" (que va aparte, de último).
+  const cadena = GRUPOS.filter(g => g.ids.length > 0 && !g.resto && g !== GRUPOS[0]);
+  const grupoResto = GRUPOS.find(g => g.resto) ||
+    { nombre: 'El resto', ids: [], resto: true };
+  const grupo = (eli <= cadena.length) ? cadena[eli - 1] : grupoResto;
+
+  if (grupo.resto) {
+    // EL RESTO: cualquier animación NO VISTA de cualquier grupo (menos
+    // las del grupo vacío, que no existen). ¿Ya se vieron TODAS? Pues
+    // todas — aquí se queda para siempre, disfrutándolas todas.
+    let pool = todasLasAnims().filter(a => !Estado.vistas.includes(a.id));
+    if (pool.length === 0) pool = todasLasAnims();
+    if (pool.length > 1 && Estado.ultimaAnim) {
+      const sinRepetir = pool.filter(a => a !== Estado.ultimaAnim);
+      if (sinRepetir.length) pool = sinRepetir;
+    }
+    const elegida = pool[enteroAleatorio(pool.length)] || ANIMACIONES[0];
+    Estado.grupoActual = grupo.nombre;
+    Estado.ultimaAnim = elegida;
+    guardar();
+    return elegida;
+  }
+
+  // El grupo de siempre: la SIGUIENTE animación de su lista, EN ORDEN,
+  // sin repetir hasta agotar el grupo (y entonces vuelve a empezar por
+  // la primera — el puntero da la vuelta solo).
+  if (Estado.grupoActual !== grupo.nombre) {
+    Estado.grupoActual = grupo.nombre;   // grupo nuevo: por la primera
+    Estado.punteroGrupo = 0;
+  }
   let pool = grupo.ids
     .map(id => ANIMACIONES.find(a => a.id === id))
-    .filter(a => a && a.habilitada !== false);
-  // "El puntero es el que gira" (la 4) entra también en las CREATIVAS,
-  // pero SOLO si no sonó antes (en los errores suaves): no se repite.
-  if (grupo.clave === 'creativas' && !Estado.vistas.includes(4)) {
-    const flecha = ANIMACIONES.find(a => a.id === 4);
-    if (flecha && !pool.includes(flecha)) pool.push(flecha);
-  }
-  // ¿se conservó a la persona y se vuelve a girar? NO la misma animación:
-  // una random del grupo ACTUAL (si el grupo agotara sus opciones, la
-  // repetición es el mal menor).
-  if (pool.length > 1 && Estado.ultimaAnim) {
-    const sinRepetir = pool.filter(a => a !== Estado.ultimaAnim);
-    if (sinRepetir.length) pool = sinRepetir;
-  }
-  const elegida = pool[enteroAleatorio(pool.length)] || ANIMACIONES[0];
+    .filter(a => a && a.habilitada !== false && animDisponible(a));
+  if (pool.length === 0) pool = [ANIMACIONES[0]];   // cinturón de seguridad
+  const pos = Math.min(Estado.punteroGrupo || 0, pool.length - 1);
+  const elegida = pool[pos];
+  Estado.punteroGrupo = (pos + 1) % pool.length;   // la SIGUIENTE, para luego
   Estado.ultimaAnim = elegida;
+  guardar();
   return elegida;
 }
 
@@ -382,12 +446,24 @@ function crearContexto(anim, prep) {
     volarSegmento: i => Motor.volarSegmento(i),   // anim. 10: ¡fuera!
     caerSegmento: i => Motor.caerSegmento(i),      // anim. 16: a plomo
 
-    // ── Animaciones 11-19 (intervenciones de usuario incluidas) ──
+    // ── Animaciones 11-23 (intervenciones de usuario incluidas) ──
     girarRoto: fn => Motor.girarRoto(fn),          // 11 y 18: gira SIN FIN
     pedirClic: opts => Motor.pedirClic(opts),       // el clic es de la animación
                                                     // (opts: {soloBolita} o
                                                     //  {soloFlecha} filtran
                                                     //  DÓNDE hay que tocar)
+    // ANIMACIÓN 22 ("A la tercera se desarma"): espera una acción que
+    // puede ser CLIC EN LA RUEDA o pulsación del BOTÓN GIRAR (la
+    // barra espaciadora también vale) — la regla de los TRES clics
+    // cuenta cualquiera de ellas. Devuelve {x, y} si fue clic de rueda
+    // (para que el desarme arranque por ahí), o null si fue botón.
+    esperarClicOGirar: () => new Promise(resolver => {
+      const cerrar = () => { clicGirarPendiente = null; Motor.cancelarClic(); };
+      clicGirarPendiente = () => { cerrar(); resolver(null); };   // botón/barra
+      Motor.pedirClic().then(c => {
+        if (clicGirarPendiente) { cerrar(); resolver(c); }        // rueda
+      });
+    }),
     arranqueManual: opts => Motor.arranqueManual(opts),  // 19: gírala a MANO
     setPista: t => setPista(t),                     // la pista de arriba
     paywallBroma: () => bromaPremium(),             // 12: el anuncio SaaS
@@ -459,7 +535,6 @@ async function girarRuleta() {
 
   Estado.girando = true;
   document.body.classList.add('girando');
-  btnGirar.disabled = true;
   mensajeEstado.textContent = '';
   setPista(null);   // durante el giro no hace falta pista (la ponen
                     // las animaciones si hay intervención de usuario)
@@ -467,16 +542,22 @@ async function girarRuleta() {
   // 1) Qué animación toca
   const anim = elegirAnimacion();
 
+  // LA REGLA DE LOS TRES CLICS (animación 22 — "A la tercera se
+  // desarma"): esa animación NECESITA que el botón GIRAR siga vivo
+  // (sus pulsaciones cuentan como clics), así que hoy no se congela
+  // — y la clase del cuerpo reactiva la tarjeta de nombres en el CSS.
+  btnGirar.disabled = !anim.cuentaClics;
+  document.body.classList.toggle('cuenta-clics', !!anim.cuentaClics);
+
   // (La progresión de grupos apunta ya esta animación como VISTA — para
-  //  que "el puntero es el que gira" no repite en las creativas si ya
-  //  salió en los errores suaves.)
+  //  "El resto": las no vistas.)
   if (Estado.ajustes.modo === 'sorpresa' && !Estado.vistas.includes(anim.id)) {
     Estado.vistas.push(anim.id);
     guardar();
   }
 
-  // 2) Preparación: la animación 7 devuelve su rueda ampliada y su
-  //    sorteo ponderado (con el color de cada porción); el resto usa
+  // 2) Preparación: las animaciones 7 y 20 devuelven su rueda ampliada
+  //    y su sorteo ponderado (con el color de cada porción); el resto usa
   //    la lista tal cual y azar justo.
   const base = { lista: Estado.nombres.slice() };
   const prep = anim.preparar
@@ -484,8 +565,8 @@ async function girarRuleta() {
     : { visual: base.lista, ganador: enteroAleatorio(base.lista.length) };
   if (prep.originalIdx == null) prep.originalIdx = prep.ganador;
 
-  // prep.colores solo lo trae la animación 7 (réplicas con el color de
-  // su dueño); el resto construye con la paleta de siempre.
+  // prep.colores solo lo traen las animaciones 7 y 20 (réplicas con el
+  // color de su dueño); el resto construye con la paleta de siempre.
   Motor.construir(prep.visual, prep.colores);
   const ctx = crearContexto(anim, prep);
   clicGiro = null;   // ya está capturado en ctx.clicGiro: al próximo giro, limpio
@@ -510,15 +591,22 @@ async function girarRuleta() {
   //  en los vasos la rueda se disolvió en bolitas y en la diana… es el
   //  DARDO el que elige). La "Selección múltiple" también: hoy el
   //  ganador cae bajo el SUPERVIVIENTE al azar, no bajo el de arriba.
-  //  Si este aviso aparece en la consola, algo se descuadró.)
+  //  Y "A la tercera se desarma" (22) igual: la rueda no giró ni un
+  //  grado — la flecha la rodea. "Nadie fue elegido" (23) es TODO lo
+  //  contrario: la gracia es que NO cae sobre nadie. Si este aviso
+  //  aparece en la consola, algo se descuadró.)
   if (anim.clave !== 'sin-girar' && anim.clave !== 'casino' && anim.clave !== 'vasos' &&
       anim.clave !== 'dardos' && anim.clave !== 'selectores-multiples' &&
-      anim.clave !== 'desarme' &&
+      anim.clave !== 'desarme' && anim.clave !== 'tercera-desarme' &&
+      anim.clave !== 'nadie-elegido' &&
       Motor.indiceBajoFlecha() !== prep.ganador) {
     console.warn('[Ruleta] Desajuste de ángulo:', Motor.indiceBajoFlecha(), '≠', prep.ganador);
   }
 
-  // 4) Anuncio y decisión Conservar/Quitar
+  // 4) Anuncio y decisión Conservar/Quitar — SALVO en "Nadie fue
+  //     elegido" (23): ahí nadie ganó (la flecha quedó ENTRE DOS nombres)
+  //     y el tiro se REPITE: sin tarjeta, sin historial… y la pista de
+  //     arriba queda pidiendo el tiro de nuevo hasta que alguien gire.
   // 5) Restauración: la flecha vuelve, la rueda se recompone y se
   //    reconstruye con la lista vigente (si se quitó a alguien, ya no está).
   // (Todo el resto va protegido: aunque algo falle a mitad de la
@@ -526,15 +614,18 @@ async function girarRuleta() {
   //  se queda clavada en "girando": siempre se recupera sola.)
   let decision = 'conservar';
   try {
-    decision = await anunciarGanador(anim, ctx, prep, nombreElegido);
-    if (decision === 'quitar') {
-      quitarNombre(prep.originalIdx);
-      avanzarGrupo();   // una persona ELIMINADA = un grupo de animaciones más
+    if (!anim.sinGanador) {
+      decision = await anunciarGanador(anim, ctx, prep, nombreElegido);
+      if (decision === 'quitar') {
+        quitarNombre(prep.originalIdx);
+        avanzarGrupo();   // una persona ELIMINADA = un grupo de animaciones más
+      }
     }
     await restaurar(anim);
   } catch (err) {
     console.error('[Ruleta] Error al restaurar (la ruleta se recupera sola):', err);
     // desmontaje de emergencia: nada queda a medias
+    clicGirarPendiente = null;      // ninguna espera de los tres clics
     contenedorLienzo.classList.remove('zoom-lento');
     Motor.mostrarFlecha();
     Motor.limpiarPolvo();
@@ -556,13 +647,16 @@ async function girarRuleta() {
   Motor.normalizarAngulo();
   Motor.construir(Estado.nombres.slice());
 
-  registrarHistorial(nombreElegido, anim);
+  if (!anim.sinGanador) registrarHistorial(nombreElegido, anim);
 
   Estado.girando = false;
-  document.body.classList.remove('girando');
+  document.body.classList.remove('girando', 'cuenta-clics');
   btnGirar.disabled = Estado.nombres.length === 0;
   actualizarContador();
-  setPistaPorDefecto();   // "Toca la rueda para girar" vuelve arriba
+  // "Toca la rueda para girar" vuelve arriba… SALVO si la animación
+  // dejó su propio aviso pidiendo otro tiro (la 23: "Realice el tiro
+  // de nuevo" — ese se queda hasta el próximo giro).
+  if (!anim.sinGanador) setPistaPorDefecto();
   actualizarEtiquetaProgresion();   // el mazo/grupo cambió con el giro
   guardar();
 }
@@ -587,10 +681,14 @@ async function anunciarGanador(anim, ctx, prep, nombre) {
   else if (anim.clave === 'casino') { Sonido.victoriaCasino(); lanzarConfeti(); }
   else { Sonido.victoria(); lanzarConfeti(); }
 
-  // Contenido de la tarjeta
-  etiquetaAnim.textContent = anim.nombre;
+  // Contenido de la tarjeta — LIMPIA, tal como se pidió: sin el
+  // nombre de la animación ni el comentario sobre ella (solo el
+  // ganador, su notita de outcomes —si la hay— y los botones).
+  etiquetaAnim.textContent = '';
+  etiquetaAnim.classList.add('oculto');
   nombreGanador.textContent = nombre;
-  fraseAnim.textContent = anim.frase || '';
+  fraseAnim.textContent = '';
+  fraseAnim.classList.add('oculto');
   notaAnim.textContent = ctx.nota || '';
   notaAnim.classList.toggle('oculto', !ctx.nota);
   prepararBotonesGanador(nombre);
@@ -654,8 +752,10 @@ function quitarNombre(idx) {
 
 // Una eliminación más (la llama girarRuleta al decidir "quitar").
 function avanzarGrupo() {
-  Estado.eliminadas = (Estado.eliminadas || 0) + 1;   // sin tope: el 4.º
-  guardar();                                          // grupo es el último
+  Estado.eliminadas = (Estado.eliminadas || 0) + 1;   // cada una avanza
+  Estado.grupoActual = null;   // al cambiar de grupo, se empieza por su
+  Estado.punteroGrupo = 0;     // PRIMERA animación (el puntero se resetea)
+  guardar();
   actualizarEtiquetaProgresion();
 }
 
@@ -664,6 +764,8 @@ function reiniciarProgresion() {
   Estado.eliminadas = 0;
   Estado.vistas = [];
   Estado.ultimaAnim = null;
+  Estado.grupoActual = null;
+  Estado.punteroGrupo = 0;
   actualizarEtiquetaProgresion();
 }
 
@@ -674,18 +776,24 @@ function actualizarEtiquetaProgresion() {
   if (!el) return;
   const modo = Estado.ajustes.modo;
   if (modo === 'sorpresa') {
+    // La cadena de nombres de grupos jugables (los NO vacíos, tras el
+    // grupo "Normal" de arranque) — tal cual en CONFIG.gruposAnimaciones
+    const GRUPOS = CONFIG.gruposAnimaciones;
+    const cadena = GRUPOS.filter(g => g.ids.length > 0 && !g.resto && g !== GRUPOS[0]);
     const eli = Estado.eliminadas || 0;
     if (eli <= 0) {
       el.textContent = 'La 1.ª tirada es la animación NORMAL de siempre. ' +
-        'Quita a alguien para avanzar: errores suaves → bromas → creativas → desvíos.';
+        'Quita a alguien para avanzar: ' +
+        cadena.map(g => g.nombre).join(' → ') + ' → El resto.';
+    } else if (eli <= cadena.length) {
+      const g = cadena[eli - 1];
+      const proximo = eli < cadena.length
+        ? cadena[eli].nombre
+        : 'El resto (cualquiera no vista)';
+      el.textContent = `Ahora suena: ${g.nombre} (${g.ids.length} animaciones).` +
+        ` Quita a alguien para pasar a: ${proximo}.`;
     } else {
-      const gi = Math.min(GRUPOS_ANIM.length, eli) - 1;
-      const g = GRUPOS_ANIM[gi];
-      const proximo = gi + 1 < GRUPOS_ANIM.length
-        ? GRUPOS_ANIM[gi + 1].nombre.toLowerCase()
-        : null;
-      el.textContent = `Ahora suenan: ${g.nombre} (${g.ids.length} animaciones).` +
-        (proximo ? ` Quita a alguien para pasar a las ${proximo}.` : ' Ya no hay más grupos: aquí se queda.');
+      el.textContent = 'El resto: cualquier animación no vista todavía — y una vez vistas todas, todas: aquí se queda para siempre.';
     }
   } else if (modo === 'aleatorio') {
     const faltan = (Estado.mazo || []).length;
@@ -749,6 +857,12 @@ async function restaurar(anim) {
   if (anim.clave === 'desarme') {
     // La flecha regresa arriba por el borde (suavecito)… y los pedazos
     // caídos, fuera: la rueda entera se reconstruye justo después.
+    await Motor.devolverFlecha();
+    Motor.finVuelos();
+  }
+  if (anim.clave === 'tercera-desarme') {
+    // Lo mismo que el desarme: la flecha vuelve arriba por el borde… y
+    // los pedazos caídos (que hoy cayeron SIN girar ni un grado), fuera.
     await Motor.devolverFlecha();
     Motor.finVuelos();
   }
@@ -939,7 +1053,15 @@ function cablearEventos() {
   // LA RUEDA: se pidió así — cualquier parte de la rueda la gira).
   // Sin clic de rueda: las animaciones que miran ctx.clicGiro
   // (el desarme) lo verán null y arrancarán por donde esté la flecha.
-  btnGirar.addEventListener('click', () => { clicGiro = null; girarRuleta(); });
+  // OJO — LA REGLA DE LOS TRES CLICS (animación 22): si esa animación
+  // está esperando sus clics, una pulsación del botón GIRAR CUENTA
+  // como clic (igual que tocar la rueda o apretar la barra). El botón
+  // no está congelado en esa animación — le llega el evento sanito.
+  btnGirar.addEventListener('click', () => {
+    if (clicGirarPendiente) { clicGirarPendiente(); return; }
+    clicGiro = null;
+    girarRuleta();
+  });
 
   // TOCAR LA RUEDA TAMBIÉN GIRA. Si una animación con INTERVENCIÓN DE
   // USUARIO está esperando un clic (el motor dañado: "haz clic en el
@@ -965,12 +1087,16 @@ function cablearEventos() {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && !Estado.girando &&
-        !e.target.closest('textarea, input, select, button')) {
+    if (e.code === 'Space' && !e.target.closest('textarea, input, select, button')) {
       e.preventDefault();
-      clicGiro = null;                       // con la barra: no hay clic
-      if (tarjetaAbierta) resolverTarjeta('conservar'); // Espacio = conservar
-      else girarRuleta();
+      // LA REGLA DE LOS TRES CLICS (22): la barra espaciadora también
+      // cuenta como clic si la animación la está esperando.
+      if (clicGirarPendiente) { clicGirarPendiente(); return; }
+      if (!Estado.girando) {
+        clicGiro = null;                       // con la barra: no hay clic
+        if (tarjetaAbierta) resolverTarjeta('conservar'); // Espacio = conservar
+        else girarRuleta();
+      }
     }
     if (e.key === 'Escape' && tarjetaAbierta && resolverTarjeta) {
       resolverTarjeta('conservar'); // cerrar con Esc = conservar
@@ -1097,6 +1223,8 @@ function actualizarDescripcionAnim() {
   // animaciones cambió de tamaño alguna vez.
   Estado.eliminadas = Number.isFinite(guardado.eliminadas) ? Math.max(0, guardado.eliminadas|0) : 0;
   Estado.vistas = Array.isArray(guardado.vistas) ? guardado.vistas : [];
+  Estado.grupoActual = (typeof guardado.grupoActual === 'string') ? guardado.grupoActual : null;
+  Estado.punteroGrupo = Number.isFinite(guardado.punteroGrupo) ? Math.max(0, guardado.punteroGrupo|0) : 0;
   if (Array.isArray(guardado.mazo)) {
     const validas = ANIMACIONES.map(a => a.id);
     Estado.mazo = guardado.mazo.filter(id => validas.includes(id));
@@ -1122,28 +1250,42 @@ function actualizarDescripcionAnim() {
   // 3) Tema (claro por defecto) antes de dibujar nada
   aplicarTema();
 
-  // 4) El desplegable de animaciones y los valores actuales en la UI —
-  //    AGRUPADO: las que resuelve la rueda solita… y las de INTERVENCIÓN
-  //    DE USUARIO (necesitan un gesto del profesor: apagar el motor
-  //    dañado tocando la bolita, frenar los frenos dañados con la
-  //    flecha, cerrar el anuncio de la broma, elegir un vaso, lanzar
-  //    el dardo… o arrancar el abanico averiado GIRÁNDOLO A MANO).
-  //    Los números (?anim=N) no cambian.
-  const grupoRueda = document.createElement('optgroup');
-  grupoRueda.label = 'La ruleta decide';
-  const grupoTuya = document.createElement('optgroup');
-  grupoTuya.label = 'Con intervención del usuario';
-  const CON_TU_MANO = [11, 12, 15, 17, 18, 19];  // motor, premium, vasos,
-                                                 // dardos, frenos dañados y
-                                                 // el abanico que se gira a mano
-  ANIMACIONES.forEach(a => {
-    const op = document.createElement('option');
-    op.value = a.id;
-    op.textContent = `${a.id}. ${a.nombre}`;
-    (CON_TU_MANO.includes(a.id) ? grupoTuya : grupoRueda).appendChild(op);
+  // 4) El desplegable de animaciones — AGRUPADO como la progresión:
+  //    los GRUPOS de CONFIG.gruposAnimaciones, con SUS nombres y en SU
+  //    orden, tal como se pidió (los grupos VACÍOS no salen — no
+  //    tendrían opciones —; "El resto" tampoco: es un mazo vivo, no
+  //    una animación fija. Los números (?anim=N) no cambian.)
+  const yaEnGrupos = new Set();
+  CONFIG.gruposAnimaciones.forEach(g => {
+    if (!g.ids || g.ids.length === 0 || g.resto) return;   // vacíos/resto: fuera
+    const optgrupo = document.createElement('optgroup');
+    optgrupo.label = g.nombre;
+    g.ids.forEach(id => {
+      const a = ANIMACIONES.find(x => x.id === id);
+      if (!a) return;
+      yaEnGrupos.add(a.id);
+      const op = document.createElement('option');
+      op.value = a.id;
+      op.textContent = `${a.id}. ${a.nombre}`;
+      optgrupo.appendChild(op);
+    });
+    seleccionAnimacion.appendChild(optgrupo);
   });
-  seleccionAnimacion.appendChild(grupoRueda);
-  seleccionAnimacion.appendChild(grupoTuya);
+  // cinturón: cualquier animación que QUEDARA FUERA de la tabla (no
+  // debiera existir ninguna — "ninguna animación sin grupo"), con
+  // grupito propio para que no sea invisible en el desplegable.
+  const sinGrupo = ANIMACIONES.filter(a => !yaEnGrupos.has(a.id));
+  if (sinGrupo.length > 0) {
+    const optgrupo = document.createElement('optgroup');
+    optgrupo.label = 'Sin grupo (añáñela en config.js → gruposAnimaciones)';
+    sinGrupo.forEach(a => {
+      const op = document.createElement('option');
+      op.value = a.id;
+      op.textContent = `${a.id}. ${a.nombre}`;
+      optgrupo.appendChild(op);
+    });
+    seleccionAnimacion.appendChild(optgrupo);
+  }
 
   document.title = CONFIG.titulo;
   document.querySelector('h1').textContent = CONFIG.titulo;

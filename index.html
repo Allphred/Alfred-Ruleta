@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ruleta</title>
-<meta name="description" content="Ruleta de nombres para clase: clásica y con diecinueve animaciones sorpresa — casino con su música de salón, la que se deshace en polvo, el juego de los vasos sobre su mesa, la DIANA Y EL DARDO que lanza el profesor, LOS FRENOS DAÑADOS que hay que frenar a mano con la flecha… y EL ABANICO AVERIADO que hay que arrancarle a mano girándole las aspas. 100% estática, sin backend.">
+<title>Alfred-Ruleta</title>
+<meta name="description" content="Alfred-Ruleta: ruleta de nombres para clase — clásica y con veintitrés animaciones sorpresa, organizadas en grupos (Parece un error → Definitivamente no es normal → Bromista → Esa no me la esperaba → Creativo → El resto). El orden de los grupos se cambia en js/config.js. 100% estática, sin backend.">
 
 <!--
   ══════════════════════════════════════════════════════════════════
-  RULETA — GUÍA RÁPIDA
+  ALFRED-RULETA — GUÍA RÁPIDA
   ══════════════════════════════════════════════════════════════════
 
   QUÉ ES
@@ -18,41 +18,36 @@
   Opciones). Se gira TOCANDO CUALQUIER PARTE DE LA RUEDA (la pista de
   arriba lo recuerda) o con el botón Girar del panel.
   Modos de giro:
-    · "Normal"      → el giro clásico de siempre, sin sorpresas.
-    · Realmente normal → LA PROGRESIÓN: la PRIMERA tirada es
-                     SIEMPRE la animación normal; cada persona QUITADA
-                     con "Quitar de la ruleta" adelanta un grupo —
-                     errores suaves (la flecha que gira, la probabilidad
-                     multiplicada, la rueda que se desarma, la parada
-                     falsa) → bromas (el motor dañado en sus DOS
-                     variantes, la tensión decisiva, el retroceso) →
-                     creativas (el casino, acelera en vez de frenar, la
-                     diana y el dardo…) → desvíos (sin girar, el
-                     chasquido Infinity, los vasos, la premium).
-                     Conservar y volver a girar NO repite la animación.
-    · Random         → literalmente random: un MAZO con las 19
-                     animaciones, sin orden y SIN REPETIR hasta
-                     agotarse (luego se rebaraja solo).
-    · Elegir animación → fuerza una concreta (útil para probarlas).
+    · "Normal"         → LA PROGRESIÓN POR GRUPOS: la PRIMERA tirada
+                    es SIEMPRE la animación clásica; cada persona
+                    QUITADA con "Quitar de la ruleta" adelanta un
+                    grupo; si se CONSERVA, el siguiente giro continúa
+                    dentro del grupo actual.
+    · Realmente normal → el giro clásico de siempre, sin sorpresas.
+    · Random           → mazo barajado sin repetir hasta agotarlo.
+    · Elegir animación → siempre usa una animación concreta.
 
-  Las 19 animaciones incluyen: paradas falsas, tensión decisiva con
-  choque, la flecha que gira, el chasquido estilo Infinity War, la
-  RULETA DE CASINO —con su música de salón (el Nocturno de salón:
-  jazz lento y cálido) y su fanfarria de victoria—, la voladora… y
-  las nuevas: el MOTOR DAÑADO, que acelera sin parar hasta que tocas
-  la bolita del motor para apagarlo; EL ABANICO AVERIADO ("ayúdala a
-  girar"): suena un corto eléctrico, la ruleta penando con su sonido
-  de abanico dañado… y HAY QUE ARRANCÁRSELA A MANO, girándole las
-  aspas con el ratón o el dedo, hasta que el motor agarra y el
-  abanico se cura; la BROMA PREMIUM estilo SaaS (tapa la pantalla
-  ANTES de verse el resultado), la que ACELERA Y PARA EN SECO, los
-  SELECTORES que nacen y se caen (sobrevive uno AL AZAR), el JUEGO DE
-  LOS VASOS —los segmentos se CONVIERTEN de verdad en bolitas, mesa
-  de madera—, la que ARRANCA, SE AVERÍA y SE DESARMA a pedazos (cada
-  pedazo con su sonido)… y DIANA Y DARDO… y LOS FRENOS DAÑADOS: la
-  rueda gira sin parar y solo la FLECHA la frena (a una marcha ya
-  amable: 2 vueltas/s, para que se LEAN los nombres), con frenazo
-  dramático de auto.
+  Las 23 animaciones — hoy AGRUPADAS así (el orden se cambia en
+  js/config.js → gruposAnimaciones):
+    · Normal: la Clásica.
+    · Parece un error. Algo anda mal: la flecha que gira, la parada
+      falsa, la probabilidad multiplicada, la N.º 2 (el SEGMENTO
+      GIGANTE de un solo nombre), Tambaleo, la que se desarma a la
+      TERCERA pulsación (sin girar)… y la que queda ENTRE DOS
+      nombres: repite el tiro.
+    · Definitivamente no es normal: retrocede y elige al anterior,
+      el motor dañado en sus DOS variantes, la rueda que se desarma,
+      la nueva Tensión decisiva (lentísima al final, rebota hacia
+      atrás y elige al otro), la selección múltiple, los frenos
+      dañados.
+    · Bromista: VACÍO por ahora (bromas conceptuales: recoger el
+      selector caído, la página caída…) — la progresión lo SALTA.
+    · Esa no me la esperaba: sin girar, el chasquido Infinity, la
+      broma Premium, el juego de los vasos.
+    · Creativo: la ruleta de casino (HOY SIN MÚSICA — se pidió
+      quitarla), a toda velocidad, acelera en vez de frenar, la diana
+      y el dardo.
+    · El resto: cualquier animación NO VISTA — y vistas todas, todas.
 
   En Opciones hay tres deslizadores para el carácter del giro:
     · Duración  → segundos (12 de serie).
@@ -69,18 +64,27 @@
          https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/
        Ese es el enlace que compartes con otros profesores.
     (También funciona con doble clic en index.html, sin internet.)
-  DÓNDE CAMBIAR PARÁMETROS
-    · js/config.js     → colores, duración, volumen, tamaño de la flecha,
-                        clavijas, polvo, multiplicador de probabilidad…
-    · js/animations.js → los tiempos y vueltas de CADA animación.
+
+  DÓNDE CAMBIAR COSAS
+    · js/config.js     → EL ORDEN DE LOS GRUPOS (gruposAnimaciones —
+                        con su leyenda número → animación), colores,
+                        duración, volumen, el tamaño del gajo gigante
+                        (prob2), el timing de la Tensión decisiva
+                        (tension) y el ajuste fino de la Clásica
+                        (clasica): TODO el panel de mandos.
+    · js/animations.js → las coreografías de las 23 animaciones.
     · styles.css       → el aspecto (tema claro y oscuro, tarjetas…).
 
   TRUCOS DE PRUEBA (parámetros de la URL)
-    · ?anim=11      → fuerza la animación 11 (números del 1 al 19)
+    · ?anim=21      → fuerza la animación 21 (números del 1 al 23)
                        (9 = casino, 11 = motor dañado, 12 = premium,
                         15 = juego de los vasos, 16 = se desarma,
                         17 = diana y dardo, 18 = frenos dañados,
-                        19 = el abanico averiado que se gira a mano)
+                        19 = el abanico averiado que se gira a mano,
+                        20 = probabilidad N.º 2 (gajo gigante),
+                        21 = tensión decisiva (la nueva),
+                        22 = a la tercera se desarma,
+                        23 = nadie fue elegido: repite el tiro)
     · ?rapido=1      → todo dura una fracción, para probar rápido
     · ?nombres=A|B|C → rellena la lista de una vez
 
@@ -134,9 +138,10 @@
   <!-- ── Panel lateral (al lado de la ruleta) ──────────────────── -->
   <aside class="panel">
 
-    <!-- TARJETA DEL GANADOR: aparece aquí, junto a la rueda, sin
-         taparla ni difuminarla. Mientras esté abierta, la rueda sigue
-         bien visible con su segmento latiendo. -->
+    <!-- TARJETA DEL GANADOR: LIMPIA, tal como se pidió — sin el nombre
+         de la animación ni su comentario (solo el ganador, su notita
+         de outcomes si la hay y los botones). Mientras esté abierta,
+         la rueda sigue bien visible con su segmento latiendo. -->
     <section id="tarjetaGanador" class="tarjeta tarjeta-ganador" aria-label="Ganador" aria-live="polite">
       <p id="etiquetaAnim" class="etiqueta-anim"></p>
       <h2 id="nombreGanador" class="nombre-ganador"></h2>
@@ -168,16 +173,13 @@
         <fieldset>
           <legend>Modo de giro</legend>
           <div class="modo-grupo" role="radiogroup" aria-label="Modo de giro">
-            <!-- Los nombres son cosa del profesor: el giro clásico se
-                 llama "Normal" (CON las comillas bien visibles); el modo
-                 sorpresa con su PROGRESIÓN DE GRUPOS se llama
-                 "Realmente normal" (la 1.ª tirada es SIEMPRE normal; cada
-                 persona quitada adelanta un grupo; conservar y repetir
-                 NO repite animación); el RANDOM es un mazo con TODAS,
-                 sin orden ni repetición; y el de siempre para probar:
-                 "Elegir animación". -->
-            <label><input type="radio" name="modo" value="clasico"> “Normal”</label>
-            <label><input type="radio" name="modo" value="sorpresa"> Realmente normal</label>
+            <!-- Los nombres visibles se intercambian para que "Normal"
+                 sea el modo de progresión por grupos y "Realmente normal"
+                 sea el giro clásico sin sorpresas. Random usa un mazo con
+                 TODAS las animaciones y "Elegir animación" permite probar
+                 una animación concreta. -->
+            <label><input type="radio" name="modo" value="sorpresa"> Normal</label>
+            <label><input type="radio" name="modo" value="clasico"> Realmente normal</label>
             <label><input type="radio" name="modo" value="aleatorio"> Random (sin repetir)</label>
             <label><input type="radio" name="modo" value="fija"> Elegir animación</label>
           </div>
@@ -220,12 +222,12 @@
           <label><input type="checkbox" id="checkSonido" checked> Sonido (tics de la ruleta y fanfarria)</label>
         </div>
 
-        <!-- La MÚSICA DEL CASINO no tiene botón: se pidió volver al
-             tema de SIEMPRE (el swing de Las Vegas), que suena solo
-             en la animación 9, sin selector alguno. -->
-
         <!-- El MODO OSCURO ya no vive aquí: se pidió el botón de la
              LUNA en la cabecera, junto a "Opciones" (arriba). -->
+
+        <!-- (La MÚSICA DEL CASINO tampoco existe ya: se pidió
+             QUITARLA del todo — en la ruleta de casino solo quedan
+             los sonidos de la bola y la fanfarria de victoria. -->
 
       </div>
     </details>

@@ -15,30 +15,91 @@
 const CONFIG = {
 
   /* ── General ────────────────────────────────────────────────────── */
-  // El texto de ARRIBA de la página. (Tal como se pidió: solo
-  // "Ruleta", sin "del profesor".)
-  titulo: 'Ruleta',
+  // El texto de ARRIBA de la página y el nombre de la app: por ahora
+  // ALFRED-RULETA (se pidió ese nombre).
+  titulo: 'Alfred-Ruleta',
 
   // Tema al abrir la página: 'claro' (por defecto) o 'oscuro'.
   // El profesor lo cambia con el botón de la LUNA/EL SOL de la cabecera
   // (junto a "Opciones") y la elección se guarda en el navegador.
   temaPorDefecto: 'claro',
 
-  // Modo al abrir la página (los nombres de los modos son los de la
+  // Modo al abrir la página (los nombres visibles son los de la
   // cabecera del panel: "Normal", "Realmente normal", "Random" y
-  // "Elegir animación" — el humor es cosa del profesor):
-  //   'clasico'   → siempre la animación 1 (giro clásico)
-  //   'sorpresa'  → LA PROGRESIÓN: la 1.ª tirada es COMPLETAMENTE normal
-  //                 (la clásica); cada persona quitada con el botón
-  //                 "Quitar de la ruleta" avanza un GRUPO de animaciones
-  //                 (errores suaves → bromas → creativas → desvíos). Si se
-  //                 conserva y se vuelve a girar, NO repite la misma
-  //                 animación: otra random del grupo actual.
+  // "Elegir animación"):
+  //   'clasico'   → siempre la animación clásica
+  //   'sorpresa'  → modo NORMAL predeterminado: comienza siempre con
+  //                 la animación clásica y desbloquea grupos al quitar
+  //                 participantes; conservar no avanza la progresión
   //   'aleatorio' → EL MODO RANDOM: literalmente random — un MAZO
   //                 barajado con TODAS las animaciones, sin orden y SIN
   //                 REPETIR hasta agotarlo (luego se rebaraja solo)
   //   'fija'      → siempre la animación elegida en el desplegable
-  modoPorDefecto: 'clasico',
+  modoPorDefecto: 'sorpresa',
+
+
+  /* ═══ LOS GRUPOS DE ANIMACIONES (EL ORDEN SE CAMBIA AQUÍ) ════════
+     ─────────────────────────────────────────────────────────────
+     Esta tabla es EL ORDEN de la progresión del modo "Realmente
+     normal"… y la que muestra el desplegable de "Elegir animación".
+
+     QUÉ HACE LA APP CON ESTA TABLA:
+       · El 1.er giro de una clase es SIEMPRE la animación del grupo
+         1 ("Normal": la Clásica). Mientras nadie se elimine, ahí se
+         queda (y en el modo "Normal" de siempre, esa es toda la vida).
+       · Cada persona QUITADA con "Quitar de la ruleta" avanza AL
+         SIGUIENTE grupo de la lista. Los grupos VACÍOS se saltan
+         solos: el de "Bromista" está vacío a propósito (sus bromas
+         aún no existen), así que del grupo 3 se pasa AL 5 sin
+         detenerse ahí.
+       · Si se CONSERVA a la persona y se vuelve a girar, suena la
+         animación SIGUIENTE de la lista del grupo actual, en ORDEN y
+         SIN REPETIR hasta agotar ese grupo (y entonces vuelve a
+         empezar por la primera de la lista).
+       · El último grupo (marcado resto: true) es "EL RESTO": al
+         llegar ahí sale CUALQUIER animación todavía NO VISTA (de
+         cualquier grupo, menos las del grupo vacío)… y una vez
+         vistas todas, se queda ahí para siempre, disfrutándolas
+         todas.
+
+     CÓMO CAMBIAR EL ORDEN (para tus muchos cambios de grupo):
+       · Mover una animación de grupo = BORRAR su número de la lista
+         ids:[...] de un grupo y ESCRIBIRLO en la de otro grupo.
+       · El orden DENTRO de cada lista es el orden en que se juegan
+         (la primera es la que sale primero; sin repetir hasta
+         agotarla).
+       · Los números son los de la LEYENDA de abajo: los mismos que
+         muestra el desplegable de "Elegir animación" y los de ?anim=N
+         en la URL.
+       · Un grupo con ids: [] queda VACÍO: la progresión lo salta
+         solo (nadie se queda atascado en él).
+
+     LEYENDA (número → animación):
+        1  Clásica                             2  Parada falsa… y sigue
+        3  Tambaleo (antes "Tensión decisiva") 4  El que gira es la flecha
+        5  Retrocede y elige al anterior       6  Sin girar
+        7  Probabilidad multiplicada           8  El chasquido (Infinity)
+        9  Ruleta de casino                    10 A toda velocidad
+       11  El motor dañado                     12 La versión Premium (broma)
+       13  Acelera en vez de frenar            14 La selección múltiple
+       15  El juego de los vasos               16 La rueda se desarma
+       17  Diana y dardo                       18 Frenos dañados
+       19  El motor dañado: ¡ayúdala a girar!  20 Probabilidad multiplicada N.º 2
+       21  Tensión decisiva (la nueva)          22 A la tercera se desarma
+       23  Nadie fue elegido (repite el tiro)
+
+     OJO: la 17 (Diana y dardo) solo sale si hay 4 o más nombres —
+     con 2-3 queda fea (se pidió). En "Elegir animación" se puede
+     forzar igual, para probarla. ═══════════════════════════════ */
+  gruposAnimaciones: [
+    { nombre: 'Normal',                         ids: [1] },
+    { nombre: 'Parece un error. Algo anda mal',  ids: [4, 2, 7, 20, 3, 22, 23] },
+    { nombre: 'Definitivamente no es normal',  ids: [5, 11, 19, 16, 21, 14, 18] },
+    { nombre: 'Bromista',                       ids: [] },
+    { nombre: 'Esa no me la esperaba',          ids: [6, 8, 12, 15] },
+    { nombre: 'Creativo',                       ids: [9, 10, 13, 17] },
+    { nombre: 'El resto',                       ids: [], resto: true },
+  ],
 
 
   /* ── Duración y fuerza del giro ─────────────────────────────────── */
@@ -57,6 +118,19 @@ const CONFIG = {
   aceleracionPorDefecto: 1.5,
   arranqueBase: 0.16, // fracción del giro que dura el arranque con ×1
                      // (la fracción real = arranqueBase / aceleración)
+
+  /* ── AJUSTE FINO DE LA ANIMACIÓN CLÁSICA (la 1) ────────────────────
+     Para ajustar su tiempo CON MUCHA PRECISIÓN sin tocar código:
+     · fraccion → cuánto dura, en TANTO POR UNO de la duración base
+       (1 = exactamente lo que diga el deslizador de Duración;
+        1.25 = un cuarto más largo; 0.8 = más corto).
+     · suspenso → EL FINAL: exponente de la frenada. 4.5 = el de serie
+       (la frenada de feria que se arrastra). SUBE para un final aún
+       más lento (6 = glacial); BAJA para acabar antes (3 = decidido). */
+  clasica: {
+    fraccion: 1,
+    suspenso: 4.5,
+  },
 
 
   /* ── Sonido ─────────────────────────────────────────────────────── */
@@ -163,13 +237,11 @@ const CONFIG = {
     radioBola:     8.5,        // radio de la bola de marfil (px, rueda de 480)
     vueltasBola:   [5.5, 7],   // vueltas de la bola por la pista (mín, máx)
     deflectores:   8,          // diamantes del apron (los de verdad son 8)
-    // MÚSICA de casino mientras dura la transformación: el NOCTURNO DE
-    // SALÓN (piano eléctrico cálido, contrabajo suave, escobillas y un
-    // vibraphone escaso — NADA de platillos brillantes que cansen el
-    // oído: el swing anterior seguía sin gustar, así que se rehizo
-    // entero, más cálido y más bajito), y fanfarria de victoria cálida
-    // al caer la bola. Pon false si prefieres solo los sonidos de la bola.
-    musica: true,
+    // MÚSICA de casino mientras dura la transformación. SE PIDIÓ
+    // QUITARLA DEL TODO: false = SIN MÚSICA (solo quedan los sonidos
+    // de la bola rodando y la fanfarria de victoria al caer).
+    // Pon true si algún día quieres volver a oírla.
+    musica: false,
   },
 
   /* ── Animación 10 (a toda velocidad, segmentos que vuelan) ─────── */
@@ -177,6 +249,36 @@ const CONFIG = {
     vueltas: 14,    // vueltas del tramo turbo (las de la guía), ANTES del
                     // deslizador de Velocidad
     gravedad: 900,  // px/s² que tiran de los segmentos que salen volando
+  },
+
+  /* ── Animación 21 (TENSIÓN DECISIVA — la nueva "realmente ═══
+     decisiva"): TODO su timing vive aquí, para ajustarlo a mano. */
+  tension: {
+    fraccion: 1,    // duración total del giro, en fracción de la base
+                    // (1 = lo que diga el deslizador de Duración).
+    lentitud: 8.5,  // EL FINAL LENTÍSIMO: exponente de la frenada
+                    // final. 8.5 = se arrastra muchísimo (MÁS que la
+                    // clásica: es la gracia de esta animación).
+                    // SUBE para aún más tortura (11 = eterno);
+                    // BAJA para decidirse antes (5 = como la clásica).
+    pausa: 1.15,    // SEGUNDOS parada con la flecha clavada EXACTA en
+                    // la frontera entre los dos nombres (LA tensión).
+    temblores: 3,   // micro-empujoncitos durante la pausa: parece que
+                    // la rueda se va a seguir moviendo en cualquier
+                    // momento y decidirse por el otro.
+    rebote: 0.5,    // segundos del REBOTE hacia atrás (el que ELIGE
+                    // al otro nombre de los dos).
+  },
+
+  /* ── Animación 20 (PROBABILIDAD MULTIPLICADA N.º 2: el segmento ═══
+     gigante): en vez de réplicas repartidas por la rueda, UN SOLO
+     segmento del favorecido — pero ENORME. */
+  prob2: {
+    // Cuántas veces más grande queda el segmento del favorecido
+    // (entre 6 y 8, tal como se pidió). La probabilidad sale sola:
+    // con 8, ese segmento ocupa 8 de las (n + 7) porciones.
+    min: 6,
+    max: 8,
   },
 
   /* ── Animación 11 (el motor dañado) ────────────────────────────── */
@@ -216,6 +318,14 @@ const CONFIG = {
     // Cuánto tarda en LLEGAR a esa velocidad (progresivo: como un
     // giro normal que nunca acaba de frenar).
     rampa: 2.4,
+
+    // EL APAGADO (animación 11 — clic en la bolita): ya NO hay
+    // derrape de auto con chirrido (se pidió quitarlo: el motor se
+    // APAGA, literalmente). Suena un motor BAJANDO LA MARCHA y la
+    // rueda se va muriendo sola hasta detenerse sobre quien pasaba
+    // por la flecha. Vueltas y segundos que dura el apagado:
+    apagadoVueltas: 1.8,    // vueltas que corre mientras se muere
+    apagadoDuracion: 1.4,   // segundos que tarda en apagarse del todo
   },
 
   /* ── Animación 19 (El motor dañado: ayúdala a girar — el ABANICO ═

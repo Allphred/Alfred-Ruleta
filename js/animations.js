@@ -1,20 +1,30 @@
 /* ════════════════════════════════════════════════════════════════════
-   LAS DIECINUEVE ANIMACIONES DE LA RULETA
+   LAS VEINTITRÉS ANIMACIONES DE LA RULETA
    ──────────────────────────────────────────────────────────────────────
    Cada animación es un objeto con esta ficha:
 
-     id         → número (1–19), el que se usa con ?anim=N en la URL
+     id         → número (1–23), el que se usa con ?anim=N en la URL
      clave      → nombre interno para el código
      nombre     → nombre que se muestra al usuario
      peso       → probabilidad RELATIVA en el sorteo antiguo (hoy lo
                   usan los modos por peso — el grupo y el mazo sortean
                   uniforme; se conserva por compatibilidad)
      habilitada → false = no participa en el sorteo de los modos
+     minNombres → nº MÍNIMO de nombres para que pueda salir sorteada
+                  (la DIANA Y EL DARDO pide 4: con 2-3 nombres queda
+                  fea — solo se fuerza con "Elegir animación")
+     cuentaClics→ true = el botón GIRAR sigue vivo durante esta
+                  animación y sus pulsaciones cuentan como clics (la
+                  regla de los TRES clics de la 22)
+     sinGanador → true = esta animación NO saca tarjeta: nadie fue
+                  elegido y el tiro se repite (la 23: la flecha cae
+                  entre dos nombres)
      descripcion→ texto de ayuda del desplegable
-     frase      → la línea con la que se presenta al ganador
+     frase      → la línea con la que se presenta al ganador (hoy no
+                  se muestra: la tarjeta salió LIMPIA, tal como se
+                  pidió — sin nombre de animación ni comentario)
      preparar() → (opcional) prepara la lista y el sorteo ANTES de girar;
-                  solo la animación 7 la usa (repite un nombre en la
-                  rueda, con réplicas del MISMO color que su dueño)
+                  solo la animación 7 y la 20 la usan (rueda ampliada)
      girar()    → la coreografía: una secuencia de fases "await" que
                   describe el movimiento de la rueda
 
@@ -130,6 +140,13 @@
                     a desarmarse por el segmento pulsado.
      ctx.indiceBajoFlecha() → el índice que está ahora mismo bajo la
                     flecha (fallback del desarme sin clic).
+     ctx.esperarClicOGirar() → ANIMACIÓN 22 ("A la tercera se
+                    desarma"): espera una acción del usuario que puede
+                    ser un CLIC EN LA RUEDA *o* una pulsación del BOTÓN
+                    GIRAR (también vale la barra espaciadora) — la regla
+                    de los TRES clics cuenta cualquiera de ellas.
+                    Devuelve {x, y} si fue clic de rueda, o null si fue
+                    el botón/la barra.
      ctx.definirGanador(i) → para las animaciones donde decide el
                     PROFESOR (los vasos: la bolita del vaso elegido; la
                     diana: donde cayó el dardo; el motor dañado y los
@@ -163,10 +180,13 @@
      ctx.sonido         → el objeto Sonido (tic clásico, crujido,
                     victoria, reverso, suspenseo…)
 
-     LOS CUATRO GRUPOS (para el modo "Realmente normal" — ver el final
-     del archivo): 1.ª tirada SIEMPRE normal; cada persona QUITADA con
-     "Quitar de la ruleta" avanza un grupo (errores suaves → bromas
-     → creativas → desvíos); conservar y re-girar NO repite animación.
+     LOS GRUPOS (para el modo "Realmente normal" — la tabla vive en
+     CONFIG.gruposAnimaciones, en js/config.js — AHÍ SE CAMBIA EL
+     ORDEN): 1.ª tirada SIEMPRE normal; cada persona QUITADA con
+     "Quitar de la ruleta" avanza al siguiente grupo (los vacíos se
+     saltan solos); conservar y re-girar va a la SIGUIENTE animación
+     de la lista del grupo actual, sin repetir hasta agotarlo. El
+     último grupo ("El resto") baraja cualquier animación no vista.
 
    SUAVIZADOS disponibles (definen cómo cambia la velocidad):
      SUAV.lineal               velocidad constante
@@ -317,28 +337,37 @@ function curvaAbanico(v0, vmaxRel, delta, T) {
 }
 
 
+// ── CONFIG.clasica con su cinturón (lo usan la 1 y la 23) ────────
+// (así el ajuste fino de la clásica vive en config.js y nunca revienta)
+const CLASICA_CFG = () => ({ fraccion: 1, suspenso: 4.5, ...(CONFIG.clasica || {}) });
+
 const ANIMACIONES = [
 
-  /* ═══ 1 · CLÁSICA (con suspenso) ══════════════════════════════════ */
+  /* ═══ 1 · CLÁSICA ═════════════════════════════════════════════ */
   {
     id: 1,
     clave: 'clasica',
-    nombre: 'Clásica (con suspenso)',
+    nombre: 'Clásica',
     peso: 3,
     habilitada: true,
-    descripcion: 'Giro normal de 12 s con una frenada de feria: el final se arrastra para que la elección se saboree.',
+    descripcion: 'Giro normal con frenada de feria: el final se arrastra para que la elección se saboree. (El ajuste fino de sus tiempos —duración y cuánto se arrastra el final— vive en CONFIG.clasica, en js/config.js.)',
     frase: 'Con toda la tensión del final…',
 
     async girar(ctx) {
       // Vueltas normales (5–8, ya multiplicadas por el deslizador de
-      // Velocidad) y frenada "salidaRuleta": los últimos grados cuestan
+      // Velocidad) y frenada "de feria": los últimos grados cuestan
       // una eternidad, con un TIC… tic… tic… lento.
-      // ¿Aún más lento al final? Sube el exponente 4.5 de SUAV.salidaRuleta.
+      // EL AJUSTE FINO DE LOS TIEMPOS (se pidió ajustarla con MUCHA
+      // precisión) vive en CONFIG.clasica (js/config.js):
+      //   · fraccion → cuánto dura (1 = lo que diga el deslizador).
+      //   · suspenso  → exponente del final (4.5 = el de siempre;
+      //                  6 = aún más lento; 3 = más corto).
+      const CL = CLASICA_CFG();
       await ctx.girarHasta({
         vueltas: ctx.girosNormal(),
         sentido: 1,
-        duracion: ctx.segs(1),
-        suavizado: SUAV.salidaRuleta,
+        duracion: ctx.segs(CL.fraccion),
+        suavizado: salidaPotencia(CL.suspenso),   // la "salidaRuleta" de siempre
         arranque: true,   // la rueda coge fuerza al empezar (Aceleración)
       });
     },
@@ -390,14 +419,16 @@ const ANIMACIONES = [
   },
 
 
-  /* ═══ 3 · TENSIÓN DECISIVA (rebote con tope, replicada EXACTA ═════
-     como en la guía: la flecha actúa de TOPE y la rueda choca y rebota) */
+  /* ═══ 3 · TAMBALEO (antes "Tensión decisiva" — rebote con tope, ═════
+     replicada EXACTA como en la guía: la flecha actúa de TOPE y la
+     rueda choca y rebota. La NUEVA "Tensión decisiva" es la 21.) */
   {
     id: 3,
-    clave: 'tension-decisiva',
-    nombre: 'Tensión decisiva',
+    clave: 'tambaleo',
+    nombre: 'Tambaleo',
     peso: 1.6, // un pelín más probable que las demás: es la favorita
     habilitada: true,
+    minNombres: 2,
     descripcion: 'La flecha actúa de TOPE: la rueda llega con velocidad y se PASA del ganador… y CHOCA. Rebota hacia atrás —pasando nombres por la flecha, cada vez más cerca—, vuelve a chocar, rebota más corto… y se asienta exactamente sobre el elegido.',
     frase: '¡Chocó con el tope… y rebota hasta el ganador!',
 
@@ -844,15 +875,17 @@ const ANIMACIONES = [
      lo confiesa: "Error: Se ha dañado el motor de la ruleta. Haz
      clic en el motor para apagarlo." — el motor es LA BOLITA NEGRA
      del buje, que luce su anillo dorado latiendo. El profesor la
-     toca… y DERRAPE frenético de auto: para a lo bravo justo donde
-     iba pasando por la flecha en ese instante. */
+     toca… y EL MOTOR SE APAGA DE VERDAD (se pidió quitar el frenazo
+     de auto): se le oye BAJANDO LA MARCHA, la rueda se va muriendo
+     sola — despacito, con su tic-tac espaciándose — hasta parar
+     JUSTO donde iba pasando por la flecha en ese instante. */
   {
     id: 11,
     clave: 'motor-dañado',
     nombre: 'El motor dañado',
     peso: 1,
     habilitada: true,
-    descripcion: 'El giro dura más de lo esperado: la rueda parece frenar como siempre… pero el motor dañado la acelera poco a poco (aceleración PROGRESIVA, nada de un acelerón de repente) hasta una velocidad de LOCURA (imposible ver sobre quién caerá), con su sonido de motor con cambios de marcha, HUMO y CHISPAS por el buje. La pista de arriba lo confiesa (sin alerta ninguna): "Error: Se ha dañado el motor de la ruleta. Haz clic en el motor para apagarlo. Disculpe los inconvenientes." Toca LA BOLITA NEGRA del centro (el motor, con su anillo dorado latiendo)… y DERRAPE frenético: para a lo bravo donde iba pasando por la flecha, con el chirrido de auto frenando.',
+    descripcion: 'El giro dura más de lo esperado: la rueda parece frenar como siempre… pero el motor dañado la acelera poco a poco (aceleración PROGRESIVA, nada de un acelerón de repente) hasta una velocidad de LOCURA (imposible ver sobre quién caerá), con su sonido de motor con cambios de marcha, HUMO y CHISPAS por el buje. La pista de arriba lo confiesa (sin alerta ninguna): "Error: Se ha dañado el motor de la ruleta. Haz clic en el motor para apagarlo. Disculpe los inconvenientes." Toca LA BOLITA NEGRA del centro (el motor, con su anillo dorado latiendo)… y el motor SE APAGA DE VERDAD (ya sin derrape de auto): se oye BAJANDO LA MARCHA y la rueda se va muriendo sola hasta parar sobre quien pasaba por la flecha.',
     frase: 'El motor llegó dañado… ¡lo apagó a mano!',
 
     async girar(ctx) {
@@ -904,18 +937,40 @@ const ANIMACIONES = [
       ctx.humoParar();   // la avería deja de echar humo (la cola se apaga sola)
       await roto.detener();
 
-      // La rueda para A LO BRAVO JUSTO DONDE IBA: el sector que estaba
-      // pasando por la FLECHA en el instante de apagar el motor es el
-      // que queda elegido (la tarjeta anunciará a quien toque de
-      // verdad: a esa velocidad era imposible apuntar).
+      // La rueda para DONDE IBA: el sector que estaba pasando por la
+      // FLECHA en el instante de apagar el motor es el que queda
+      // elegido (la tarjeta anunciará a quien toque de verdad: a esa
+      // velocidad era imposible apuntar).
       const bajo = ctx.sectorBajoFlecha();
       const indice = bajo ? bajo.indice : ctx.ganador;
       const u = bajo ? bajo.u : 0.5;
       ctx.definirGanador(indice);
-      await ctx.derraparHasta({ indice, u, velocidad: TAU * V });
-      ctx.sonido.turboParar();   // el turbo muere con la rueda
-      ctx.sonido.golpe(1);       // ¡el CLONK del auto ya parado!
-      await ctx.temblor(0.45);
+
+      // EL APAGADO DE VERDAD (se pidió: ya NO hay derrape de auto con
+      // chirrido — el motor se APAGA, literalmente): suena un MOTOR
+      // BAJANDO LA MARCHA (marcha a marcha, "clac… clac…", hasta
+      // quedarse quieto) y la rueda se va muriendo SOLA — la curva
+      // arranca CLAVADA a la velocidad que traía (ni un salto) y se
+      // desangra despacito hasta detenerse exacto sobre ese sector,
+      // con su tic-tac espaciándose como el de un giro que se acaba.
+      const s = ctx.s;
+      const hasta = ANGULO_FLECHA_TOPE - (indice + u) * s;
+      let delta = norm(hasta - Motor.estado.anguloRueda);
+      if (delta < 0.02) delta += TAU;
+      // la física del apagado: T sale para que la velocidad INICIAL
+      // de la curva calce con la REAL (V) — la rueda no "frena" de
+      // golpe: se muere. (∫ del perfil de abajo = 1/2.8 + 0.05)
+      const INTEGRAL = 1 / 2.8 + 0.05;
+      const T = Math.max(0.3, Math.min(2.4, delta * 1.05 / (INTEGRAL * V)));
+      ctx.sonido.turboParar();            // el turbo muere con el motor
+      ctx.sonido.motorBajaMarcha(T);       // ¡el motor apagándose!
+      await ctx.girarAngulo({
+        delta,
+        duracion: T,
+        suavizado: curvaDeVelocidad(v => Math.pow(1 - v, 1.8) + 0.05),
+      });
+      ctx.sonido.golpe(0.22);   // el último toc del motor ya quieto
+      await ctx.temblor(0.16);
     },
   },
 
@@ -1233,6 +1288,9 @@ const ANIMACIONES = [
     nombre: 'Diana y dardo',
     peso: 1.15,   // flamante intervención de usuario: un pelín más probable
     habilitada: true,
+    minNombres: 4,   // SE PIDIÓ: con 2-3 nombres la diana queda fea —
+                     // solo sale en Random y Realmente normal si hay
+                     // 4 o más (con "Elegir animación" se puede forzar)
     descripcion: 'La rueda se TUMBAAA a plano sagital y se convierte en una DIANA; el selector se convierte en DARDO. La pista de arriba te lo dice: agarra el dardo y lánzalo (sin alertas). Vuela con TU gesto, se CLAVA… y la diana vuelve a ponerse de frente con el dardo puesto: DONDE CAYÓ queda elegido el ganador. ¡Intervención del usuario!',
     frase: 'Tú lo lanzaste: donde cayó el dardo.',
 
@@ -1251,10 +1309,11 @@ const ANIMACIONES = [
      la rueda coge velocidad… y ahí SE QUEDA: velocidad constante —
      sin frenar — durante siete largos segundos (a una marcha ya
      AMABLE: se bajó un 30 % porque antes los nombres no se leían).
-     Entonces la pista de arriba lo confiesa: "Error: Se le fueron
-     los frenos a la ruleta. Presiona la flecha (triángulo invertido)
-     para frenarla manualmente." Y ahí se queda girando HASTA QUE
-     EL PROFESOR pise el freno: al tocar EL TRIÁNGULO SELECTOR (que
+     Entonces la pista de arriba lo confiesa (ADVERTENCIA, no error
+     — tal como se pidió): "Advertencia: Si se le van los frenos a
+     la ruleta, puede pararla manualmente haciendo click en la
+     flecha selectora". Y ahí se queda girando HASTA QUE EL
+     PROFESOR pise el freno: al tocar EL TRIÁNGULO SELECTOR (que
      late llamándole), la rueda frena EN DRAMÁTICO — el MISMO
      derrape de auto con su chirrido de la animación 11 (el motor
      dañado) — justo sobre quien estaba pasando por la flecha en ese
@@ -1265,7 +1324,7 @@ const ANIMACIONES = [
     nombre: 'Frenos dañados',
     peso: 1.15,   // flamante intervención de usuario: un pelín más probable
     habilitada: true,
-    descripcion: 'Arranca como un giro normal… y al coger velocidad NO frena: se queda girando a esa marcha CONSTANTE (2 vueltas por segundo — ya se LEEN los nombres, que era lo que importaba), siete largos segundos. Entonces la pista lo confiesa: "Error: Se le fueron los frenos a la ruleta. Presiona la flecha (triángulo invertido) para frenarla manualmente." Y sigue girando… hasta que TÚ tocas EL TRIÁNGULO (que late llamándote): frenazo dramático de auto, con su chirrido — el mismo de "El motor dañado"—, justo sobre quien pasaba por la flecha. ¡Intervención del usuario!',
+    descripcion: 'Arranca como un giro normal… y al coger velocidad NO frena: se queda girando a esa marcha CONSTANTE (2 vueltas por segundo — ya se LEEN los nombres, que era lo que importaba), siete largos segundos. Entonces la pista lo confiesa: "Advertencia: Si se le van los frenos a la ruleta, puede pararla manualmente haciendo click en la flecha selectora". Y sigue girando… hasta que TÚ tocas EL TRIÁNGULO (que late llamándote): frenazo dramático de auto, con su chirrido — el mismo de "El motor dañado"—, justo sobre quien pasaba por la flecha. ¡Intervención del usuario!',
     frase: 'Se le fueron los frenos… ¡y la frenaste con la flecha!',
 
     async girar(ctx) {
@@ -1287,8 +1346,10 @@ const ANIMACIONES = [
       // 2) SIETE segundos girando a velocidad constante…
       await ctx.dormir(rampa + (CONFIG.frenos.constancia || 7));
 
-      // 3) …y la CONFESIÓN, en la pista de arriba (sin alertas):
-      ctx.setPista('Error: Se le fueron los frenos a la ruleta. Presiona la flecha (triángulo invertido) para frenarla manualmente.');
+      // 3) …y la CONFESIÓN, en la pista de arriba (sin alertas). Es una
+      //    ADVERTENCIA, no un error (se pidió el texto exacto): sale en
+      //    ÁMBAR, no en rojo — js/ui.js la colorea sola por la palabra.
+      ctx.setPista('Advertencia: Si se le van los frenos a la ruleta, puede pararla manualmente haciendo click en la flecha selectora.');
 
       // 4) Gira y gira — SOLO EL TRIÁNGULO la frena (intervención de
       //    usuario). Mientras se espera, la FLECHA LATE suavecita
@@ -1421,43 +1482,311 @@ const ANIMACIONES = [
       await ctx.dormir(0.30);
     },
   },
+
+
+  /* ═══ 20 · PROBABILIDAD MULTIPLICADA N.º 2 (el SEGMENTO ═════════
+     GIGANTE) — como la 7, pero al revés de las 6-8 réplicas
+     REPARTIDAS por toda la rueda, aquí hay UN SOLO nombre del
+     favorecido… con su segmento 6-8 VECES MÁS GRANDE que los
+     demás. La rueda se ve normal — nombres normales, un gajo
+     ENORME del favorecido con SU color y SU nombre escrito UNA
+     sola vez en el centro —, el giro es el de la guía… y la
+     probabilidad cae sola en el gajo gordo.
+
+     CÓMO SE LOGRA: preparar() inserta el favorecido "mult" veces
+     SEGUIDAS en la lista (todas con su mismo color) y js/motor.js
+     FUSIONA en el dibujo las ranuras contiguas iguales — se dibuja
+     un SOLO segmento, sin fronteras internas, y los TICS solo
+     suenan en las fronteras de verdad (dentro del gajo gigante no
+     hay clavija que cruce). */
+  {
+    id: 20,
+    clave: 'probabilidad-2',
+    nombre: 'Probabilidad multiplicada N.º 2',
+    peso: 1,
+    habilitada: true,
+    minNombres: 2,
+    descripcion: 'Como la de la probabilidad multiplicada… pero al revés: en vez de las 6-8 réplicas repartidas por la rueda, aquí hay UN SOLO nombre de él — con ese segmento 6-8 VECES MÁS GRANDE que los demás. Una rueda normal con un gajo ENORME: la probabilidad cae sola donde el gajo gordo. El giro es totalmente normal.',
+    frase: 'Su segmento era más grande: casualidad.',
+
+    preparar(base) {
+      const lista = base.lista;
+      // cuántas veces más grande queda el gajo del favorecido
+      // (CONFIG.prob2.min-max, 6-8 tal como se pidió)
+      const P2 = CONFIG.prob2 || {};
+      const min = P2.min != null ? P2.min : 6;
+      const max = P2.max != null ? P2.max : 8;
+      const mult = Math.round(Math.max(min, Math.min(max, min + Math.random() * (max - min))));
+
+      // a quién se le multiplica la suerte: UN nombre al azar
+      const favorecido = enteroAleatorio(lista.length);
+
+      // el color de cada participante es el de SU posición en la lista
+      // original — las copias HEREDAN ese color (motor.js funde las
+      // ranuras contiguas iguales en UN solo segmento gigante).
+      const p = CONFIG.paleta.length;
+      const coloresBase = lista.map((_, j) => CONFIG.paleta[j % p]);
+
+      // la rueda ampliada: el favorecido ocupa "mult" porciones
+      // SEGUIDAS (el gajo gigante); los demás, una cada uno.
+      const visual = [];
+      const colores = [];
+      const mapa = [];
+      for (let i = 0; i < lista.length; i++) {
+        const veces = (i === favorecido) ? mult : 1;
+        for (let k = 0; k < veces; k++) {
+          visual.push(lista[i]);
+          colores.push(coloresBase[i]);
+          mapa.push(i);
+        }
+      }
+      const porcion = enteroAleatorio(visual.length);   // sorteo uniforme
+      return {
+        visual,                     // la rueda con su gajo gigante
+        colores,                    // cada porción con el color de su dueño
+        ganador: porcion,           // índice en la rueda ampliada
+        originalIdx: mapa[porcion], // índice en la lista original
+        nota: `Su segmento era ${mult} veces más grande que los demás.`,
+      };
+    },
+
+    async girar(ctx) {
+      // Giro totalmente normal (el de la guía: 8500 ms, easeOut(5)):
+      // la gracia está en la rueda, no en el giro.
+      await ctx.girarHasta({
+        vueltas: 6 * ctx.vel,
+        sentido: 1,
+        duracion: ctx.guia(8500),
+        suavizado: SUAV.salidaQuintica,
+        arranque: true,
+      });
+    },
+  },
+
+
+  /* ═══ 21 · TENSIÓN DECISIVA (la nueva "realmente decisiva") ═══════
+     Se desempeña como la clásica… solo que el final del recorrido es
+     LENTÍSIMO (da tensión en cuál de los DOS caerá): la flecha acaba
+     clavada EXACTAMENTE en la frontera entre los dos nombres — sin
+     decidirse por ninguno, PARECIENDO QUE SE SEGUIRÁ MOVIENDO… y
+     entonces REBOTA HACIA ATRÁS y elige AL OTRO.
+
+     TODO EL TIMING VIVE EN CONFIG.tension (js/config.js), tal como
+     se pidió: la duración total (fraccion), cuánto se arrastra el
+     final (lentitud), la pausa en la frontera (pausa), los
+     micro-temblores (temblores) y el rebote (rebote). */
+  {
+    id: 21,
+    clave: 'tension-decisiva',
+    nombre: 'Tensión decisiva',
+    peso: 1.6,   // la favorita de la clase: la que más tensión genera
+    habilitada: true,
+    minNombres: 2,
+    descripcion: 'La clásica de verdad… pero el final se arrastra LENTÍSIMO hasta dejar la flecha clavada EXACTA en la frontera entre DOS nombres — sin decidirse, pareciendo que seguirá rodando en cualquier momento… y entonces REBOTA hacia atrás y elige al otro. (Todos sus tiempos —cuánto se arrastra, la pausa, el rebote— viven en CONFIG.tension, en js/config.js.)',
+    frase: 'Se quedó entre dos… ¡y rebatió hacia el otro!',
+
+    async girar(ctx) {
+      // con un solo nombre no hay "los dos": se degrada a clásica
+      if (ctx.n < 2) {
+        const CL = CLASICA_CFG();
+        await ctx.girarHasta({
+          vueltas: ctx.girosNormal(), sentido: 1,
+          duracion: ctx.segs(CL.fraccion), suavizado: salidaPotencia(CL.suspenso),
+          arranque: true,
+        });
+        return;
+      }
+
+      const TN = CONFIG.tension || {};
+      const s = ctx.s;
+
+      // 1) EL GIRO CASI-CLÁSICO con el final LENTÍSIMO (la gracia):
+      //    cae EXACTO sobre la FRONTERA entre el ganador y el nombre
+      //    anterior — la flecha ni un pelo a un lado ni al otro.
+      //    (lentitud: el exponente de la frenada — CONFIG.tension)
+      const frontera = ANGULO_FLECHA_TOPE - ctx.ganador * s;
+      await ctx.girarAnguloAbsoluto({
+        hasta: frontera,
+        vueltas: 6 * ctx.vel,
+        sentido: 1,
+        duracion: ctx.segs(TN.fraccion != null ? TN.fraccion : 1),
+        suavizado: salidaPotencia(TN.lentitud != null ? TN.lentitud : 8.5),
+        arranque: true,
+      });
+
+      // 2) LA PAUSA DE LA TORTURA: parada en la frontera… y unos
+      //    MICRO-EMPUNJONCITOS cada vez más chiquitos y más espaciados:
+      //    parece que en cualquier momento se va a decidir por uno de
+      //    los dos y seguir rodando. (El dron de suspense crece solo.)
+      const esperar = seg => new Promise(r => setTimeout(r, seg * 1000));
+      const temblores = Math.max(0, TN.temblores != null ? TN.temblores : 3);
+      const Tpausa = Math.max(0.3, (TN.pausa != null ? TN.pausa : 1.15) * ESCALA);
+      ctx.sonido.suspenseo(Tpausa);
+      for (let k = 0; k < temblores; k++) {
+        await esperar(Tpausa / (temblores + 1));
+        await ctx.girarAngulo({
+          // cada empujoncito, más chiquitito (va perdiendo fuerzas…)
+          delta: s * 0.014 * (1 - k / (temblores + 1)),
+          duracion: 0.09,
+          suavizado: SUAV.salidaCubica,
+        });
+      }
+
+      // 3) …y REBOTA HACIA ATRÁS: medio segmento de un brinco, hasta
+      //    quedar CLAVADA en el centro del OTRO nombre de los dos (el
+      //    elegido de verdad — la rueda "decidió" yendo pa'atrás).
+      ctx.sonido.golpe(0.32);
+      await ctx.girarAngulo({
+        delta: -s * 0.5,
+        duracion: TN.rebote != null ? TN.rebote : 0.5,
+        suavizado: SUAV.entradaSalidaCubica,
+      });
+    },
+  },
+
+
+  /* ═══ 22 · A LA TERCERA SE DESARMA (sin girar NI UN GRADO) ═══════
+     El usuario hace clic en la rueda para que gire (o pulsa Girar)…
+     y NADA: la rueda no se mueve — solo un TOQUE SECO, a feedback.
+     La preciona una segunda vez… tampoco (otro toque seco). Y A LA
+     TERCERA: el sonido de motor dañado ROMPIÉNDOSE — y la rueda SE
+     DESARMA en pedazos como la 16, PERO SIN HABER GIRADO NI UN
+     GRADO. Solo queda el ganador… y la flecha recorre el borde
+     hasta señalarlo.
+
+     LA REGLA DE LOS TRES CLICS cuenta CUALQUIERA de estas tres:
+     clic en la rueda, pulsación del botón GIRAR o barra
+     espaciadora (el botón sigue VIVO durante esta animación:
+     cuentaClics — js/ui.js lo deja habilitado y le pasa sus
+     pulsaciones a la animación). */
+  {
+    id: 22,
+    clave: 'tercera-desarme',
+    nombre: 'A la tercera se desarma',
+    peso: 1,
+    habilitada: true,
+    minNombres: 2,
+    cuentaClics: true,   // js/ui.js: el botón Girar sigue vivo y cuenta
+    descripcion: 'Le das a girar… y NADA: la rueda ni se mueve — solo un toque seco, a feedback. Un segundo clic… tampoco. Y A LA TERCERA: la avería la desarma en pedazos — con su sonido de motor dañado — SIN haber girado ni un grado; la flecha recorre el borde y señala al ganador. (La regla de los tres clics cuenta rueda, botón Girar y barra espaciadora por igual.)',
+    frase: 'Ni quiso girar: a la tercera se desarmó.',
+
+    async girar(ctx) {
+      // 1) El PRIMER clic ya se dio — el que arrancó este giro: su
+      //    feedback es este TOQUE SECO. La rueda ni se inmuta.
+      ctx.sonido.clicSeco();
+
+      // 2) El SEGUNDO clic (rueda, botón Girar o barra: cualquiera
+      //    vale): otro toque seco. La rueda sigue sin moverse NI UN grado.
+      await ctx.esperarClicOGirar();
+      ctx.sonido.clicSeco();
+
+      // 3) Y A LA TERCERA: LA AVERÍA — el motor se rompe de verdad
+      //    (su sonido de motor dañado, de golpe) — y la rueda SE
+      //    DESARMA entera SIN GIRAR: pedazo a pedazo, cada uno con su
+      //    sonido. (El desarme empieza por el segmento del ÚLTIMO
+      //    clic — como en la 16; si fue con el botón, por la flecha.)
+      const c3 = await ctx.esperarClicOGirar();
+      ctx.sonido.motorRoto();
+
+      const clic = c3 || ctx.clicGiro || null;
+      const bajo = clic ? ctx.sectorBajoPunto(clic.x, clic.y) : null;
+      const inicio = bajo
+        ? bajo.indice
+        : Math.max(0, ctx.indiceBajoFlecha());
+      const orden = [];
+      for (let k = 0; k < ctx.n; k++) {
+        const i = (inicio + k) % ctx.n;
+        if (i !== ctx.ganador) orden.push(i);
+      }
+      const paso = Math.min(0.11, Math.max(0.045, 0.8 / Math.max(1, orden.length)));
+      let k = 0;
+      for (const i of orden) {
+        ctx.caerSegmento(i);
+        ctx.sonido.pieza(k++);      // ¡crac! — este pedazo, su sonido
+        await ctx.dormir(paso);
+      }
+
+      // 4) La flecha RECORRE el borde hasta el ganador (la rueda ni
+      //    se movió: hoy quien decide es ella, rodeando los pedazos).
+      ctx.sonido.suspenseo(ctx.segs(0.16));
+      await ctx.girarFlechaHasta({
+        vueltas: 1,
+        sentido: 1,
+        duracion: ctx.segs(0.16),
+        suavizado: SUAV.salidaCuartica,
+        arranque: true,
+      });
+
+      // 5) Un respiro solemne… y la tarjeta.
+      await ctx.dormir(0.35);
+    },
+  },
+
+
+  /* ═══ 23 · NADIE FUE ELEGIDO (la flecha cae ENTRE dos nombres) ══
+     La ruleta se mueve NORMAL, clásica de verdad… pero al final
+     queda con el selector EN LA FRONTERA EXACTA entre DOS
+     segmentos — la flecha clavada en la mitad de los dos, sin
+     seleccionar a nadie. La pista de arriba (una ADVERTENCIA, en
+     ámbar) manda: realice el tiro de nuevo, que no se seleccionó a
+     nadie. SIN tarjeta de ganador y SIN historial: el próximo clic
+     de la rueda vuelve a girar, como si el tiro no hubiera contado. */
+  {
+    id: 23,
+    clave: 'nadie-elegido',
+    nombre: 'Nadie fue elegido (repite el tiro)',
+    peso: 1,
+    habilitada: true,
+    minNombres: 2,
+    sinGanador: true,   // js/ui.js: sin tarjeta — el tiro se repite
+    descripcion: 'El giro es la clásica de verdad… pero al final la flecha queda clavada JUSTA en la franja entre dos nombres: no se seleccionó a nadie. La pista de arriba manda (en ámbar): "Advertencia: La flecha quedó entre dos nombres: no se seleccionó a nadie. Realice el tiro de nuevo." Sin tarjeta y sin historial: el tiro se repite.',
+    frase: 'Quedó entre dos nombres: nadie fue elegido.',
+
+    async girar(ctx) {
+      // 1) EL GIRO CLÁSICO de verdad (mismos tiempos de CONFIG.clasica)…
+      //    pero el destino no es el centro de nadie: es la FRONTERA
+      //    EXACTA entre dos segmentos al azar.
+      const CL = CLASICA_CFG();
+      const frontera = ANGULO_FLECHA_TOPE - enteroAleatorio(ctx.n) * ctx.s;
+      await ctx.girarAnguloAbsoluto({
+        hasta: frontera,
+        vueltas: ctx.girosNormal(),
+        sentido: 1,
+        duracion: ctx.segs(CL.fraccion),
+        suavizado: salidaPotencia(CL.suspenso),
+        arranque: true,
+      });
+
+      // 2) Un instante de incertidumbre — toda la clase mirando la
+      //    flecha clavada en la mitad de los dos, sin decidirse…
+      await ctx.dormir(0.9);
+
+      // 3) …y la confesión (ADVERTENCIA, en ámbar): no se seleccionó a
+      //    nadie, hay que repetir el tiro. La pista se queda hasta que
+      //    alguien vuelva a girar (js/ui.js no la borra en esta anim).
+      ctx.setPista('Advertencia: La flecha quedó entre dos nombres: no se seleccionó a nadie. Realice el tiro de nuevo.');
+    },
+  },
 ];
 
 
 /* ════════════════════════════════════════════════════════════════════
-   LOS CUATRO GRUPOS DE ANIMACIONES (para el modo "Realmente normal")
+   LOS GRUPOS DE ANIMACIONES (para el modo "Realmente normal")
    ────────────────────────────────────────────────────────────────────
-   La progresión completa, tal como se pidió:
-     · La PRIMERA TIRADA es SIEMPRE la animación COMPLETAMENTE NORMAL
-       (la clásica, la 1): mientras no se haya quitado a nadie, no hay
-       sorpresas.
-     · Cada persona QUITADA con el botón "Quitar de la ruleta" ADELANTA
-       UN GRUPO (a avanzar entre grupos hay que haber eliminado a una
-       persona — conservar no cuenta):
-         1.ª eliminación → 1 · ERRORES SUAVES ("error animation spin"):
-              la flecha que gira (4), la probabilidad multiplicada (7),
-              la rueda se desarma (16) y la parada falsa (2).
-         2.ª eliminación → 2 · BROMAS ("prank animation spin"):
-              el motor dañado — LAS DOS VARIANTES (11 y 19)—, la
-              tensión decisiva (3) y retrocede y elige al anterior (5).
-         3.ª eliminación → 3 · CREATIVAS ("creative animation spin"):
-              el casino (9), acelera en vez de frenar (13), la diana y
-              el dardo (17)… y las que nadie mencionó en el reparto, que
-              no podían quedarse sin grupo: la voladora (10), la
-              selección múltiple (14) y los frenos dañados (18).
-         4.ª y siguientes → 4 · DESVÍOS ("misdirection spin"):
-              sin girar (6), el chasquido Infinity (8), los vasos (15)
-              y la versión premium (12).
-     · "El puntero es el que gira" (la 4) vuelve a entrar en las
-       CREATIVAS solo si NO sonó antes (en los errores suaves): js/ui.js
-       lo añade al grupo si no está en las ya vistas.
-     · Si se CONSERVA a la persona y se vuelve a girar, NO sale la
-       misma animación: se toma una RANDOM del grupo actual.
-   El mazo del modo RANDOM ("Random sin repetir") baraja TODAS (la
-   1 incluida) sin orden y sin repetir hasta agotarse. */
-const GRUPOS_ANIM = [
-  { clave: 'errores',   nombre: 'Errores suaves', ids: [2, 4, 7, 16] },
-  { clave: 'bromas',    nombre: 'Bromas',          ids: [3, 5, 11, 19] },
-  { clave: 'creativas', nombre: 'Creativas',       ids: [9, 10, 13, 14, 17, 18] },
-  { clave: 'desvios',   nombre: 'Desvíos',         ids: [6, 8, 12, 15] },
-];
+   ⚠ LA TABLA YA NO VIVE AQUÍ: se mudó a js/config.js
+   (CONFIG.gruposAnimaciones) para que cambiar el ORDEN y los miembros
+   de cada grupo sea cosa de un solo archivo, sin tocar código. Allí
+   está la leyenda número → animación y las reglas completas.
+
+   La progresión (la implementa js/ui.js → elegirAnimacion):
+     · La PRIMERA TIRADA es SIEMPRE la animación NORMAL (la 1).
+     · Cada persona QUITADA con "Quitar de la ruleta" avanza al
+       SIGUIENTE grupo NO VACÍO de la tabla (los vacíos se saltan).
+     · Conservar y volver a girar → la SIGUIENTE animación de la
+       lista del grupo actual, SIN REPETIR hasta agotar el grupo.
+     · El último grupo (resto: true, "El resto") → cualquier
+       animación NO VISTA; vistas todas → todas, para siempre.
+   El mazo del modo RANDOM baraja TODAS sin orden y sin repetir
+   hasta agotarse (excluye las que no cumplen su mínimo de nombres,
+   como la diana con menos de 4). */
+const GRUPOS_ANIM = CONFIG.gruposAnimaciones;

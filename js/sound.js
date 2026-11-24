@@ -47,9 +47,12 @@
    · motorAcelerado() → EL SONIDO DE ACELERACIÓN del motor dañado
       (anim. 11): un motor que sube de vueltas CON SUS CAMBIOS DE
       MARCHA (rugido que cae y vuelve a subir, como un auto de verdad).
-   · frenazoCarro()   → EL FRENAZO DRAMÁTICO DE AUTO (anim. 11): el
-      chirrido agudo de los neumáticos derrapando… y el "¡CLONK!" del
-      auto ya parado, con su meneo de suspensión.
+   · motorBajaMarcha() → EL APAGADO del motor dañado (anim. 11, al
+      tocar la bolita): ya NO hay frenazo de auto (se pidió quitarlo) —
+      el motor BAJA LA MARCHA una a una hasta quedarse quieto.
+   · frenazoCarro()   → EL FRENAZO DRAMÁTICO DE AUTO (anim. 18 — los
+      frenos dañados): el chirrido agudo de los neumáticos derrapando…
+      y el "¡CLONK!" del auto ya parado, con su meneo de suspensión.
    · frenoSuave()     → LA VERSIÓN TRANQUILA (herramienta libre): el freno
       se aplica SIN drama — aire que escapa y un chirrido amable, corto.
    · pieza(k)    → el crac de CADA pedazo que se desprende en el
@@ -58,6 +61,13 @@
    · aterrizar(k, fuerza) → EL TOC DEL SUELO (anim. 16): cada pedazo
       suena cuando LLEGA AL SUELO de verdad — el golpe sordo del
       impacto, con su matiz (se OYE que tocan el piso, uno a uno).
+   · clicSeco()  → EL TOQUE SECO de los dos primeros clics sobre la
+      rueda que no gira (anim. 22): la "háptica" de algo que no
+      responde.
+   · motorRoto()  → EL MOTOR ROMPIÉNDOSE de golpe (anim. 22, a la
+      tercera): el motor tose, escupe… y muere con su CLAC.
+   · bolitaSuelo() → EL TOC de una BOLITA tocando el suelo (anim. 15,
+      se pidió): cada bote de las bolitas suena a bolita de verdad.
    · pernos(fuerza) → EL CHOQUE DEL SELECTOR NUEVO con los pernos
       invisibles: cada frontera que cruza bajo la BOLITA suena a
       perno metálico — un clink corto de tornillo (herramienta libre).
@@ -77,14 +87,12 @@
       a sonar como un ABANICO SANO (aire limpio y un zumbido suave
       y constante) cuando el motor por fin agarra.
 
-   MÚSICA DE CASINO (animación 9 — rehecha entera: el swing seguía
-   sin gustar):
-   · casinoMusicaIniciar() / casinoMusicaParar() → EL NOCTURNO DE
-      SALÓN: jazz lento y cálido de hotel — piano eléctrico mullido,
-      contrabajo caminando bajito, escobillas suaves y un vibraphone
-      escaso. SIN platillos brillantes ni glockenspiel: nada que
-      canse el oído. En lazo mientras dura la transformación.
-   · victoriaCasino() → la fanfarria "¡GANADOOOR!" — ahora CÁLIDA:
+   MÚSICA DE CASINO (animación 9 — hoy APAGADA por completo: se pidió
+   QUITARLE la música al casino; CONFIG.casino.musica = false):
+   · casinoMusicaIniciar() / casinoMusicaParar() → el nocturno de
+      salón (dormido mientras CONFIG.casino.musica sea false — si
+      algún día se vuelve a pedir, con true vuelve a sonar).
+   · victoriaCasino() → la fanfarria "¡GANADOOOR!" — CÁLIDA:
       metales mullidos y una ola suave, sin agudos de platillo.
    · clavarDardo() → el "¡tock!" del dardo clavándose en la diana
       (animación 17).
@@ -709,6 +717,44 @@ const Sonido = (() => {
       tono(92 * azarF, 0.13, 'sine', 0.06 * fuerza, 0.012);
     },
 
+    /* ── EL TOQUE SECO (animación 22 — "A la tercera se desarma") ────
+       El feedback de los DOS primeros clics sobre una rueda muerta
+       (la que no gira): un toque secote y apagado — como tocar algo
+       que no responde. La "háptica" sonora que se pidió. */
+    clicSeco() {
+      tono(185, 0.045, 'sine', 0.17);
+      tono(96, 0.07, 'sine', 0.11, 0.01);
+      ruido(0.028, 0.05);
+    },
+
+    /* ── EL MOTOR ROMPIÉNDOSE (animación 22 — a la tercera) ────────
+       El "¡se daño!" de verdad: el motor tose dos veces (sierra grave
+       trabándose, cada vez más ahogada)… y muere con su CLAC. Como el
+       sonido del motor dañado de la 11, pero de golpe. */
+    motorRoto() {
+      // dos-tres tudos del motor trabándose (cada uno más grave y
+      // más flojo: se está ahogando)
+      tono(130, 0.09, 'sawtooth', 0.11);
+      tono(74, 0.12, 'sawtooth', 0.085, 0.10);
+      tono(48, 0.16, 'sawtooth', 0.06, 0.24);
+      ruido(0.05, 0.06);
+      ruido(0.09, 0.045);
+      // …y el CLAC seco de la muerte del motor
+      tono(76, 0.16, 'sine', 0.22, 0.38);
+      tono(150, 0.07, 'triangle', 0.10, 0.39);
+    },
+
+    /* ── UNA BOLITA TOCANDO EL SUELO (animación 15 — los vasos) ────
+       El "toc" seco y agudo de una bolita contra la mesa de madera,
+       con su matiz de rebote. fuerza: 0–1 (según cómo de fuerte
+       bote). Se pidió: el sonido de las bolas tocando el suelo. */
+    bolitaSuelo(fuerza = 1) {
+      const azarF = 0.9 + Math.random() * 0.2;
+      tono(720 * azarF, 0.05, 'triangle', 0.10 * fuerza);
+      tono(1460 * azarF, 0.03, 'sine', 0.05 * fuerza);
+      tono(215 * azarF, 0.05, 'sine', 0.05 * fuerza, 0.008);
+    },
+
     // Zumbido descendente del giro anómalo (animación 3)
     reverso() {
       const a = ctx(); if (!a) return;
@@ -987,6 +1033,47 @@ const Sonido = (() => {
       ruido(0.05, 0.05);
       tono(210, 0.06, 'square', 0.05, d);
       tono(240, 0.06, 'square', 0.05, d * 2);
+    },
+
+    /* ── EL MOTOR APAGÁNDOSE (animación 11 — clic en la bolita) ────────
+       Ya NO hay frenazo de auto con chirrido (se pidió quitarlo):
+       apagar el motor se oye como lo que ES — UN MOTOR BAJANDO LA
+       MARCHA: las revoluciones caen de marcha en marcha ("clac"…
+       "clac"… "clac", cada vez más flojitos) hasta quedarse quieto
+       y callado. Literalmente ya lo apagamos. */
+    motorBajaMarcha(duracionSeg = 1.4) {
+      const a = ctx(); if (!a) return;
+      const t0 = a.currentTime + 0.01;
+      const d = Math.max(0.5, duracionSeg);
+      // el motor en sí: sierra grave con filtro cálido, perdiendo
+      // revoluciones de marcha en marcha (cada tramo arranca MÁS
+      // BAJO: el golpe de bajar la marcha)
+      const o = a.createOscillator();
+      o.type = 'sawtooth';
+      const f = a.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 620;
+      f.Q.value = 1.2;
+      const g = a.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.13 * CONFIG.volumen, t0 + 0.05);
+      g.gain.setValueAtTime(0.13 * CONFIG.volumen, t0 + d * 0.74);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      const paso = d / 4;
+      o.frequency.setValueAtTime(235, t0);
+      o.frequency.linearRampToValueAtTime(150, t0 + paso * 0.9);
+      o.frequency.setValueAtTime(128, t0 + paso);
+      o.frequency.linearRampToValueAtTime(88, t0 + paso * 1.9);
+      o.frequency.setValueAtTime(76, t0 + paso * 2);
+      o.frequency.linearRampToValueAtTime(52, t0 + paso * 2.9);
+      o.frequency.setValueAtTime(44, t0 + paso * 3);
+      o.frequency.linearRampToValueAtTime(26, t0 + d);   // se muere…
+      o.connect(f); f.connect(g); g.connect(a.destination);
+      o.start(t0); o.stop(t0 + d + 0.05);
+      // …y los tres "clac" de las marchas cayendo (cada vez más flojos)
+      tono(190, 0.05, 'square', 0.05, paso);
+      tono(150, 0.05, 'square', 0.04, paso * 2);
+      tono(115, 0.05, 'square', 0.03, paso * 3);
     },
 
     /* ── EL FRENAZO DE AUTO (animación 11 — el freno dañado) ────────
