@@ -264,6 +264,9 @@ html[data-theme="dark"] .pista-rueda.pista-advertencia { color: #ffc24d; }
 .boton-girar:active:not(:disabled) { transform: scale(0.985); }
 .boton-girar:disabled { filter: grayscale(0.7); opacity: 0.55; cursor: not-allowed; }
 
+/* Oculto temporalmente: el giro sigue disponible desde la rueda y, donde aplique, desde la barra espaciadora. */
+.boton-girar { display: none !important; }
+
 .mensaje-estado {
   min-height: 1.4em;
   margin: 0;
