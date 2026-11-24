@@ -1,6 +1,6 @@
-[English](README.md) | [Español](README.es.md)
+[Español](README.md) | [English](README.MD)
 
-# Ruleta anormal
+# Ruleta Normal
 
 ## ¿Qué es?
 
@@ -10,7 +10,7 @@ El proyecto fue creado con ayuda de inteligencia artificial y está pensado prin
 
 ## Demostración
 
-https://Allphred.github.io/YANR-Roulette/
+https://Allphred.github.io/Alfred-Ruleta/
 
 ## Tecnologías
 

@@ -1,4 +1,6 @@
-# Abnormal Roulette
+[Español](README.md) | [English](README.MD)
+
+# Normal Roulette
 
 ## What is this?
 
@@ -11,7 +13,7 @@ The project was created with AI assistance and is primarily intended to have fun
 You can publish the project with GitHub Pages:
 
 ```text
-https://Allphred.github.io/YANR-Roulette/
+https://Allphred.github.io/Alfred-Ruleta/
 ```
 
 ## Technologies

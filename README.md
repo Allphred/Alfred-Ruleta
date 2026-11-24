@@ -1,97 +1,97 @@
-[English](README.md) | [Español](README.es.md)
+[Español](README.md) | [English](README.MD)
 
-# Abnormal Roulette
+# Ruleta Normal
 
-## What is this?
+## ¿Qué es?
 
-Abnormal Roulette is a playful, browser-based name picker built for classrooms, friends, and groups. It began as a simple roulette wheel but includes unusual, humorous animations inspired by comedy timing, surprises, and visual gags.
+Ruleta Normal es una ruleta interactiva de nombres diseñada para clases, amigos y grupos. Comenzó como una ruleta sencilla, pero incluye animaciones poco habituales e humorísticas inspiradas en el tiempo cómico, las sorpresas y las bromas visuales.
 
-The project was created with AI assistance and is primarily intended to have fun with students and teachers. It works as a static website, so it does not require a server or backend.
+El proyecto fue creado con ayuda de inteligencia artificial y está pensado principalmente para divertirse con estudiantes, profesores y amigos. Funciona como una página web estática, por lo que no necesita servidor ni backend.
 
-## Live demo
+## Demostración
 
-https://Allphred.github.io/YANR-Roulette/
+https://Allphred.github.io/Alfred-Ruleta/
 
-## Technologies
+## Tecnologías
 
 - HTML5
 - CSS3
-- Vanilla JavaScript
+- JavaScript puro
 - Canvas API
 - Web Audio API
 - Local Storage
 - GitHub Pages
 
-No frameworks, external libraries, backend, multimedia files, or Internet connection are required.
+No requiere frameworks, librerías externas, backend, archivos multimedia ni conexión a Internet.
 
-## Features
+## Características
 
-- Interactive roulette wheel rendered with Canvas.
-- Add one participant per line.
-- Random participant selection.
-- Sound effects and synthesized music.
-- Light and dark themes.
-- Responsive design for desktop, tablet, and mobile devices.
-- Fullscreen mode.
-- Touch, mouse, and keyboard controls.
-- Automatic saving of names, settings, and history with Local Storage.
-- Adjustable spin duration, speed, and acceleration.
-- Configurable behavior after selecting a participant:
-  - Ask whether to keep or remove them.
-  - Remove them automatically.
-  - Keep them automatically.
-- Winner card displayed beside the roulette wheel.
-- Winner history with an option to clear it.
-- Direct spinning by touching or clicking the wheel.
-- Spin with the main button or the Space key.
-- URL parameters for testing and quick setup.
-- Local execution by opening `index.html` directly.
+- Ruleta interactiva creada con Canvas.
+- Un participante por línea.
+- Selección aleatoria de nombres.
+- Efectos de sonido y música sintetizada.
+- Temas claro y oscuro.
+- Diseño adaptable a ordenador, tablet y móvil.
+- Modo de pantalla completa.
+- Controles táctiles, de ratón y teclado.
+- Guardado automático de nombres, ajustes e historial con Local Storage.
+- Duración, velocidad y aceleración configurables.
+- Comportamiento configurable tras elegir a un participante:
+  - Preguntar si conservarlo o quitarlo.
+  - Quitarlo automáticamente.
+  - Conservarlo automáticamente.
+- Tarjeta de ganador junto a la ruleta.
+- Historial de ganadores con opción para limpiarlo.
+- Girar tocando o haciendo clic en la rueda.
+- Girar con la barra espaciadora.
+- Parámetros de URL para pruebas y configuración rápida.
+- Funciona directamente abriendo `index.html` en el navegador.
 
-## Spin modes
+## Modos de giro
 
-- **Normal:** Starts with the classic spin and progressively unlocks groups of surprise animations when participants are removed. This is the default mode.
-- **Really Normal:** Always uses the classic spin, with no progression or surprises.
-- **Random:** Uses a shuffled deck of all animations without repeating an animation until the deck is exhausted.
-- **Choose Animation:** Forces a specific animation for testing or presentation.
+- **Normal:** Comienza con el giro clásico y desbloquea progresivamente grupos de animaciones sorpresa al quitar participantes. Este es el modo predeterminado.
+- **Realmente normal:** Siempre utiliza el giro clásico, sin progresión ni sorpresas.
+- **Random:** Utiliza un mazo barajado con todas las animaciones sin repetir una hasta agotar el mazo.
+- **Elegir animación:** Permite seleccionar una animación concreta para pruebas o presentaciones.
 
-Keeping a participant does not advance the surprise progression. Removing a participant advances it to the next group.
+Conservar a un participante no aumenta la progresión sorpresa. Quitarlo hace avanzar al siguiente grupo.
 
-## Animations
+## Animaciones
 
-The roulette includes 19 animations, including:
+La ruleta incluye 23 animaciones, entre ellas:
 
-- Classic spin
-- False stop
-- Elastic stop and rebound
-- Rotating arrow
-- Infinity-style snap
-- Powder disintegration
-- Increased probability for one participant
-- Casino roulette
-- Damaged motor
-- Damaged brakes
-- Hand-powered damaged fan
-- Turbo spin with flying segments
-- Multiple arrows
-- Cups and balls game
-- Wheel dismantling
-- Dartboard and dart
-- SaaS-style premium prank
-- Sudden stop
-- Accelerating malfunction
+- Giro clásico
+- Parada falsa
+- Rebote y tambaleo
+- Flecha giratoria
+- Chasquido estilo Infinity
+- Desintegración en polvo
+- Probabilidad aumentada
+- Ruleta de casino
+- Motor dañado
+- Frenos averiados
+- Abanico averiado accionado a mano
+- Giro turbo con segmentos voladores
+- Selectores múltiples
+- Juego de vasos
+- Desmontaje de la rueda
+- Diana y dardo
+- Broma estilo SaaS Premium
+- Parada brusca
+- Aceleración en vez de frenado
+- Y otras sorpresas
 
-## Controls
+## Controles
 
-- Touch or click the wheel to spin.
-- Use the **Spin** button to spin.
-- Press **Space** to spin or keep a selected name.
-- Press **Esc** to keep the selected name.
-- Use the options panel to change the spin settings.
-- Use the moon or sun button to switch themes.
-- Enable or disable sound from the options panel.
-- Use fullscreen mode for presentations or projection.
+- Toca o haz clic en la rueda para girarla.
+- Pulsa **Espacio** para girar o conservar el nombre seleccionado.
+- Pulsa **Esc** para conservar el nombre seleccionado.
+- Usa el panel de opciones para cambiar los ajustes.
+- Usa el botón de luna o sol para cambiar el tema.
+- Activa o desactiva el sonido desde las opciones.
+- Usa el modo de pantalla completa para presentar o proyectar.
 
-## Project structure
+## Estructura del proyecto
 
 ```text
 index.html
@@ -104,105 +104,109 @@ js/
   ui.js
 ```
 
-### Files
+### Archivos
 
-- `index.html`: Page structure and interface elements.
-- `styles.css`: Layout, themes, responsive styles, and visual effects.
-- `js/config.js`: Default settings, palette, timing, and visual configuration.
-- `js/sound.js`: Synthesized sound effects and casino music.
-- `js/animations.js`: All 19 roulette animations and their choreography.
-- `js/motor.js`: Canvas rendering, wheel physics, and user interactions.
-- `js/ui.js`: Interface, state, settings, Local Storage, and application flow.
+- `index.html`: Estructura de la página e interfaz.
+- `styles.css`: Diseño, temas, estilos adaptables y efectos visuales.
+- `js/config.js`: Ajustes predeterminados, paleta, tiempos y configuración visual.
+- `js/sound.js`: Efectos de sonido sintetizados.
+- `js/animations.js`: Las animaciones y su coreografía.
+- `js/motor.js`: Renderizado Canvas, física de la rueda e interacciones.
+- `js/ui.js`: Interfaz, estado, ajustes, Local Storage y flujo de la aplicación.
 
-## Run locally
+## Ejecutar localmente
 
-There is no build process or installation step.
+No hay proceso de compilación ni instalación.
 
-1. Download or clone the repository.
-2. Open `index.html` directly in a modern browser.
+1. Descarga o clona el repositorio.
+2. Abre `index.html` directamente en un navegador moderno.
 
-For local server usage:
+Para usar un servidor local:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open:
+Después abre:
 
 ```text
 http://localhost:8000/
 ```
 
-## Publish with GitHub Pages
+## Publicar con GitHub Pages
 
-1. Create a public GitHub repository.
-2. Upload `index.html`, `styles.css`, and the complete `js/` folder to the repository root.
-3. Open **Settings** → **Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**.
-5. Select the `main` branch and the `/ (root)` folder.
-6. Save the settings.
+1. Crea un repositorio público en GitHub.
+2. Sube `index.html`, `styles.css` y la carpeta `js/` completa a la raíz del repositorio.
+3. Abre **Settings** → **Pages**.
+4. En **Build and deployment**, selecciona **Deploy from a branch**.
+5. Selecciona la rama `main` y la carpeta `/ (root)`.
+6. Guarda los ajustes.
 
-## Testing parameters
+## Parámetros de prueba
 
-Force a specific animation:
+Forzar una animación concreta:
 
 ```text
 ?anim=11
 ```
 
-Supported values are `1` through `19`.
+Los valores admitidos van del `1` al `23`.
 
-Speed up all animations:
+Acelerar todas las animaciones:
 
 ```text
 ?rapido=1
 ```
 
-Load names directly:
+Cargar nombres directamente:
 
 ```text
 ?nombres=A|B|C
 ```
 
-Parameters can be combined:
+Los parámetros se pueden combinar:
 
 ```text
 ?anim=19&rapido=1&nombres=A|B|C
 ```
 
-## Useful animation IDs
+## Identificadores útiles
 
-- `9` — Casino roulette
-- `11` — Damaged motor
-- `12` — Premium prank
-- `15` — Cups and balls game
-- `16` — Wheel dismantling
-- `17` — Dartboard and dart
-- `18` — Damaged brakes
-- `19` — Hand-powered damaged fan
+- `9` — Ruleta de casino
+- `11` — Motor dañado
+- `12` — Broma Premium
+- `15` — Juego de vasos
+- `16` — Desmontaje de la ruleta
+- `17` — Diana y dardo
+- `18` — Frenos dañados
+- `19` — Abanico averiado accionado a mano
+- `20` — Probabilidad multiplicada N.º 2
+- `21` — Tensión decisiva
+- `22` — A la tercera se desarma
+- `23` — Nadie fue elegido; se repite el tiro
 
-## Customization
+## Personalización
 
-- Edit `js/config.js` to change colors, default duration, volume, speed, arrow size, particle settings, and behavior.
-- Edit `js/animations.js` to change the timing and choreography of each animation.
-- Edit `styles.css` to change the layout and appearance of both themes.
-- Edit `index.html` to change interface labels and structure.
+- Edita `js/config.js` para cambiar colores, duración predeterminada, volumen, velocidad, tamaño de la flecha, partículas y comportamiento.
+- Edita `js/animations.js` para cambiar el tiempo y la coreografía de cada animación.
+- Edita `styles.css` para cambiar el diseño y la apariencia de ambos temas.
+- Edita `index.html` para cambiar las etiquetas y la estructura de la interfaz.
 
-## Browser support
+## Compatibilidad
 
-Works in modern browsers that support:
+Funciona en navegadores modernos compatibles con:
 
 - HTML Canvas
 - Web Audio API
 - Local Storage
 - Pointer Events
 - ResizeObserver
-- CSS custom properties
+- Propiedades CSS personalizadas
 
-## Privacy
+## Privacidad
 
-The application does not send participant names or settings to a server. Names and preferences are stored locally in the browser using Local Storage.
+La aplicación no envía los nombres de los participantes ni los ajustes a ningún servidor. La información se guarda localmente en el navegador mediante Local Storage.
 
-## Credits
+## Créditos
 
-Created by AI and Alfred P.J.
+Creado con ayuda de IA y Alfred P.J.
