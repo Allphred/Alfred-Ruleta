@@ -172,11 +172,8 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
   position: relative;
   width: min(100%, 600px);
   aspect-ratio: 1 / 1;
-  /* La rueda se aparta del texto de la pista de arriba (se pidió 20 px
-     MÁS de separación: la pista es POSICIÓN ABSOLUTA — no ocupa sitio
-     en el flujo y su texto mide ~20 px de alto—, así que este margen
-     le deja a la coronilla de la rueda sus 20 px de aire por debajo
-     del aviso). */
+  /* La pista es flotante y no ocupa sitio en el flujo: su aparición
+     o desaparición no mueve la rueda ni modifica el diseño. */
   margin: 40px auto 0;
   border-radius: 50%;
   /* halo suave detrás de la rueda */
@@ -220,19 +217,14 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
   background: none;
   border: none;
   color: var(--texto-suave);
-  /* ×1.5 MÁS GRANDE (se pidió: 1.06rem → 1.6rem) — alguien no vio el
-     mensaje y ahora no puede perdérselo: peso máximo y parpadeo
-     marcado. */
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-align: center;
   line-height: 1.25;
-  pointer-events: none;   /* es un aviso, no un botón: nunca estorba */
+  pointer-events: none;
   z-index: 3;
   text-shadow: 0 1px 2px var(--fondo), 0 2px 12px var(--fondo);
-  /* parpadeo MÁS notorio (se pidió: se destacara más): baja hasta el
-     30 % de opacidad y el ciclo es más corto — imposible no verlo */
   animation: pistaPalpita 1.4s ease-in-out infinite;
 }
 @keyframes pistaPalpita {
