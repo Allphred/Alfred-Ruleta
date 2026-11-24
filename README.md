@@ -4,9 +4,9 @@
 
 ## ¿Qué es?
 
-Ruleta Normal es una ruleta interactiva de nombres diseñada para clases, amigos y grupos. Comenzó como una ruleta sencilla, pero incluye animaciones poco habituales e humorísticas inspiradas en el tiempo cómico, las sorpresas y las bromas visuales.
+Ruleta Normal es una ruleta interactiva que toma nombres 100% al azar. Comenzó como una ruleta sencilla, pero incluye animaciones poco habituales e humorísticas inspiradas en el tiempo cómico, las sorpresas y las bromas visuales.
 
-El proyecto fue creado con ayuda de inteligencia artificial y está pensado principalmente para divertirse con estudiantes, profesores y amigos. Funciona como una página web estática, por lo que no necesita servidor ni backend.
+El proyecto fue creado con ayuda de inteligencia artificial y está pensado principalmente para divertirse con estudiantes, profesores, amigos, etc. Funciona como una página web estática, por lo que no necesita servidor ni backend.
 
 ## Demostración
 
