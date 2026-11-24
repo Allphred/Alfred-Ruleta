@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Alfred-Ruleta</title>
+<title>Ruleta Normal</title>
 <meta name="description" content="Alfred-Ruleta: ruleta de nombres para clase — clásica y con veintitrés animaciones sorpresa, organizadas en grupos (Parece un error → Definitivamente no es normal → Bromista → Esa no me la esperaba → Creativo → El resto). El orden de los grupos se cambia en js/config.js. 100% estática, sin backend.">
 
 <!--
@@ -98,9 +98,8 @@
 <body>
 
 <header class="cabecera">
-  <h1>Ruleta</h1>
+  <h1>Ruleta Normal</h1>
   <div class="acciones-cabecera">
-    <button id="btnOpciones" type="button" class="boton sutil">Opciones</button>
     <!-- El TEMA vive aquí, junto a Opciones (se pidió sacarlo del panel):
          icono clásico de LUNA en modo claro (pulsar → oscuro) y de SOL
          en modo oscuro (pulsar → claro). El CSS muestra uno u otro
@@ -180,16 +179,14 @@
                  una animación concreta. -->
             <label><input type="radio" name="modo" value="sorpresa"> Normal</label>
             <label><input type="radio" name="modo" value="clasico"> Realmente normal</label>
-            <label><input type="radio" name="modo" value="aleatorio"> Random (sin repetir)</label>
+            <label><input type="radio" name="modo" value="aleatorio"> Random</label>
             <label><input type="radio" name="modo" value="fija"> Elegir animación</label>
           </div>
           <!-- Cuenta viva de la progresión (o de lo que queda del mazo
                Random): la escribe js/ui.js → actualizarEtiquetaProgresion. -->
-          <p id="etiquetaProgresion" class="ayuda"></p>
           <div id="filaAnimFija" class="fila-anim-fija oculto">
             <label for="seleccionAnimacion">Animación</label>
             <select id="seleccionAnimacion"></select>
-            <p id="descripcionAnim" class="ayuda"></p>
           </div>
         </fieldset>
 

@@ -17,7 +17,7 @@ const CONFIG = {
   /* ── General ────────────────────────────────────────────────────── */
   // El texto de ARRIBA de la página y el nombre de la app: por ahora
   // ALFRED-RULETA (se pidió ese nombre).
-  titulo: 'Alfred-Ruleta',
+  titulo: 'Ruleta Normal',
 
   // Tema al abrir la página: 'claro' (por defecto) o 'oscuro'.
   // El profesor lo cambia con el botón de la LUNA/EL SOL de la cabecera

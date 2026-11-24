@@ -166,15 +166,21 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
   align-items: start;
 }
 
-.zona-ruleta { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.zona-ruleta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  padding-top: 7rem; /* espacio fijo para la pista, aunque esté oculta */
+}
 
 #contenedorLienzo {
   position: relative;
   width: min(100%, 600px);
   aspect-ratio: 1 / 1;
-  /* La pista es flotante y no ocupa sitio en el flujo: su aparición
-     o desaparición no mueve la rueda ni modifica el diseño. */
-  margin: 40px auto 0;
+    /* La pista usa el espacio reservado arriba y no se superpone a la rueda. */
+    margin: 0 auto;
   border-radius: 50%;
   /* halo suave detrás de la rueda */
   background: radial-gradient(circle at 50% 50%, var(--halo-ruleta) 0%, transparent 62%);
@@ -197,16 +203,13 @@ html[data-theme="dark"] .boton.sutil:hover:not(:disabled) { background: rgba(255
 }
 
 /* ── LA PISTA DE ARRIBA: "Toca la rueda para girar" ─────────────────
-   Aviso flotante sobre la rueda cuando está en reposo. ES POSICIÓN
-   ABSOLUTA: no ocupa sitio en el flujo, así que su aparición y su
-   desaparición NO MUEVEN NADA — la página ya no "salta" hacia arriba
-   cuando el texto se va (tal como se pidió). Sin pastilla NI contorno:
+  Aviso flotante en un espacio fijo reservado encima de la rueda.
+  Su aparición y desaparición NO MUEVEN NADA y, aunque ocupe varias
+  líneas, queda fuera del área del lienzo. Sin pastilla NI contorno:
    SOLO texto, más grande, con un palpado suave de opacidad para que
    se destaque sin gritar. Las animaciones con intervención de usuario
    lo REUTILIZAN para guiar al profesor ("haz click para pararla",
    "elige un vaso", "agarra el dardo…"). */
-.zona-ruleta { position: relative; }
-
 .pista-rueda {
   position: absolute;
   top: 0;
@@ -689,6 +692,8 @@ html[data-theme="dark"] .precio { color: #f2f4ff; }
                             a los lados, lo justo para que quepa */
     gap: 14px;
   }
+  .zona-ruleta { padding-top: 6.5rem; }
+  .pista-rueda { font-size: 1.3rem; }
   #contenedorLienzo { width: min(100%, 440px); }
   .cabecera { padding: 12px 14px; }
 }

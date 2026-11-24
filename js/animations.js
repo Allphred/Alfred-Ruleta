@@ -1349,7 +1349,7 @@ const ANIMACIONES = [
       // 3) …y la CONFESIÓN, en la pista de arriba (sin alertas). Es una
       //    ADVERTENCIA, no un error (se pidió el texto exacto): sale en
       //    ÁMBAR, no en rojo — js/ui.js la colorea sola por la palabra.
-      ctx.setPista('Advertencia: Si se le van los frenos a la ruleta, puede pararla manualmente haciendo click en la flecha selectora.');
+      ctx.setPista('Advertencia: En caso de que se le vayan los frenos a la ruleta, puede pararla manualmente haciendo click en la flecha selectora.');
 
       // 4) Gira y gira — SOLO EL TRIÁNGULO la frena (intervención de
       //    usuario). Mientras se espera, la FLECHA LATE suavecita
@@ -1764,7 +1764,7 @@ const ANIMACIONES = [
       // 3) …y la confesión (ADVERTENCIA, en ámbar): no se seleccionó a
       //    nadie, hay que repetir el tiro. La pista se queda hasta que
       //    alguien vuelva a girar (js/ui.js no la borra en esta anim).
-      ctx.setPista('Advertencia: La flecha quedó entre dos nombres: no se seleccionó a nadie. Realice el tiro de nuevo.');
+      ctx.setPista('Advertencia: Si la flecha queda entre dos nombres, no se seleccionará a nadie. Realice el giro nuevamente.');
     },
   },
 ];

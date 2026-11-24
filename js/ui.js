@@ -98,12 +98,9 @@ const pistaRueda = $('pistaRueda');   // "Toca la rueda para girar" (arriba)
 const entradaNombres = $('entradaNombres');
 const btnActualizar = $('btnActualizar');
 const contadorNombres = $('contadorNombres');
-const panelOpciones = $('panelOpciones');
-const btnOpciones = $('btnOpciones');
 const btnPantallaCompleta = $('btnPantallaCompleta');
 const filaAnimFija = $('filaAnimFija');
 const seleccionAnimacion = $('seleccionAnimacion');
-const descripcionAnim = $('descripcionAnim');
 const rangoDuracion = $('rangoDuracion');
 const valorDuracion = $('valorDuracion');
 const rangoVelocidad = $('rangoVelocidad');
@@ -657,7 +654,6 @@ async function girarRuleta() {
   // dejó su propio aviso pidiendo otro tiro (la 23: "Realice el tiro
   // de nuevo" — ese se queda hasta el próximo giro).
   if (!anim.sinGanador) setPistaPorDefecto();
-  actualizarEtiquetaProgresion();   // el mazo/grupo cambió con el giro
   guardar();
 }
 
@@ -684,8 +680,8 @@ async function anunciarGanador(anim, ctx, prep, nombre) {
   // Contenido de la tarjeta — LIMPIA, tal como se pidió: sin el
   // nombre de la animación ni el comentario sobre ella (solo el
   // ganador, su notita de outcomes —si la hay— y los botones).
-  etiquetaAnim.textContent = '';
-  etiquetaAnim.classList.add('oculto');
+  etiquetaAnim.textContent = `Animación No. ${String(anim.id).padStart(2, '0')}`;
+  etiquetaAnim.classList.remove('oculto');
   nombreGanador.textContent = nombre;
   fraseAnim.textContent = '';
   fraseAnim.classList.add('oculto');
@@ -756,7 +752,6 @@ function avanzarGrupo() {
   Estado.grupoActual = null;   // al cambiar de grupo, se empieza por su
   Estado.punteroGrupo = 0;     // PRIMERA animación (el puntero se resetea)
   guardar();
-  actualizarEtiquetaProgresion();
 }
 
 // La progresión vuelve a empezar (otra clase: la 1.ª tirada, normal).
@@ -766,45 +761,7 @@ function reiniciarProgresion() {
   Estado.ultimaAnim = null;
   Estado.grupoActual = null;
   Estado.punteroGrupo = 0;
-  actualizarEtiquetaProgresion();
 }
-
-// La etiqueta bajo los modos de Opciones: qué grupo suena ahora y qué
-// falta para avanzar (el que no sabe la regla, la lee aquí mismo).
-function actualizarEtiquetaProgresion() {
-  const el = document.getElementById('etiquetaProgresion');
-  if (!el) return;
-  const modo = Estado.ajustes.modo;
-  if (modo === 'sorpresa') {
-    // La cadena de nombres de grupos jugables (los NO vacíos, tras el
-    // grupo "Normal" de arranque) — tal cual en CONFIG.gruposAnimaciones
-    const GRUPOS = CONFIG.gruposAnimaciones;
-    const cadena = GRUPOS.filter(g => g.ids.length > 0 && !g.resto && g !== GRUPOS[0]);
-    const eli = Estado.eliminadas || 0;
-    if (eli <= 0) {
-      el.textContent = 'La 1.ª tirada es la animación NORMAL de siempre. ' +
-        'Quita a alguien para avanzar: ' +
-        cadena.map(g => g.nombre).join(' → ') + ' → El resto.';
-    } else if (eli <= cadena.length) {
-      const g = cadena[eli - 1];
-      const proximo = eli < cadena.length
-        ? cadena[eli].nombre
-        : 'El resto (cualquiera no vista)';
-      el.textContent = `Ahora suena: ${g.nombre} (${g.ids.length} animaciones).` +
-        ` Quita a alguien para pasar a: ${proximo}.`;
-    } else {
-      el.textContent = 'El resto: cualquier animación no vista todavía — y una vez vistas todas, todas: aquí se queda para siempre.';
-    }
-  } else if (modo === 'aleatorio') {
-    const faltan = (Estado.mazo || []).length;
-    el.textContent = faltan > 0
-      ? `Sin orden y sin repetir: quedan ${faltan} por salir del mazo.`
-      : 'Sin orden y sin repetir: el mazo se baraja entero en el próximo giro.';
-  } else {
-    el.textContent = '';
-  }
-}
-
 
 /* ══════════════════════════════════════════════════════════════════
    RESTAURACIÓN TRAS CADA ANIMACIÓN
@@ -1112,18 +1069,11 @@ function cablearEventos() {
   });
   btnActualizar.addEventListener('click', aplicarNombres);
 
-  // Panel de opciones (abrir/cerrar)
-  btnOpciones.addEventListener('click', () => {
-    panelOpciones.open = !panelOpciones.open;
-  });
-
-  // Modo de giro (al cambiarlo, la etiqueta de la progresión se refresca:
-  // cuenta por dónde van los grupos — o cuánto mazo queda en el Random).
+  // Modo de giro
   document.querySelectorAll('input[name="modo"]').forEach(radio => {
     radio.addEventListener('change', () => {
       Estado.ajustes.modo = radio.value;
       filaAnimFija.classList.toggle('oculto', radio.value !== 'fija');
-      actualizarEtiquetaProgresion();
       guardar();
     });
   });
@@ -1131,7 +1081,6 @@ function cablearEventos() {
   // Animación fija (desplegable)
   seleccionAnimacion.addEventListener('change', () => {
     Estado.ajustes.animFija = Number(seleccionAnimacion.value);
-    actualizarDescripcionAnim();
     guardar();
   });
 
@@ -1199,12 +1148,6 @@ function cablearEventos() {
   });
 }
 
-function actualizarDescripcionAnim() {
-  const i = Math.max(0, Math.min(ANIMACIONES.length - 1, seleccionAnimacion.value - 1));
-  descripcionAnim.textContent = ANIMACIONES[i].descripcion;
-}
-
-
 /* ══════════════════════════════════════════════════════════════════
    ARRANQUE
    ══════════════════════════════════════════════════════════════════ */
@@ -1250,42 +1193,13 @@ function actualizarDescripcionAnim() {
   // 3) Tema (claro por defecto) antes de dibujar nada
   aplicarTema();
 
-  // 4) El desplegable de animaciones — AGRUPADO como la progresión:
-  //    los GRUPOS de CONFIG.gruposAnimaciones, con SUS nombres y en SU
-  //    orden, tal como se pidió (los grupos VACÍOS no salen — no
-  //    tendrían opciones —; "El resto" tampoco: es un mazo vivo, no
-  //    una animación fija. Los números (?anim=N) no cambian.)
-  const yaEnGrupos = new Set();
-  CONFIG.gruposAnimaciones.forEach(g => {
-    if (!g.ids || g.ids.length === 0 || g.resto) return;   // vacíos/resto: fuera
-    const optgrupo = document.createElement('optgroup');
-    optgrupo.label = g.nombre;
-    g.ids.forEach(id => {
-      const a = ANIMACIONES.find(x => x.id === id);
-      if (!a) return;
-      yaEnGrupos.add(a.id);
-      const op = document.createElement('option');
-      op.value = a.id;
-      op.textContent = `${a.id}. ${a.nombre}`;
-      optgrupo.appendChild(op);
-    });
-    seleccionAnimacion.appendChild(optgrupo);
+  // 4) El desplegable solo muestra los números de animación.
+  ANIMACIONES.forEach(a => {
+    const op = document.createElement('option');
+    op.value = a.id;
+    op.textContent = `Animación No. ${String(a.id).padStart(2, '0')}`;
+    seleccionAnimacion.appendChild(op);
   });
-  // cinturón: cualquier animación que QUEDARA FUERA de la tabla (no
-  // debiera existir ninguna — "ninguna animación sin grupo"), con
-  // grupito propio para que no sea invisible en el desplegable.
-  const sinGrupo = ANIMACIONES.filter(a => !yaEnGrupos.has(a.id));
-  if (sinGrupo.length > 0) {
-    const optgrupo = document.createElement('optgroup');
-    optgrupo.label = 'Sin grupo (añáñela en config.js → gruposAnimaciones)';
-    sinGrupo.forEach(a => {
-      const op = document.createElement('option');
-      op.value = a.id;
-      op.textContent = `${a.id}. ${a.nombre}`;
-      optgrupo.appendChild(op);
-    });
-    seleccionAnimacion.appendChild(optgrupo);
-  }
 
   document.title = CONFIG.titulo;
   document.querySelector('h1').textContent = CONFIG.titulo;
@@ -1295,7 +1209,6 @@ function actualizarDescripcionAnim() {
   });
   filaAnimFija.classList.toggle('oculto', Estado.ajustes.modo !== 'fija');
   seleccionAnimacion.value = String(Estado.ajustes.animFija);
-  actualizarDescripcionAnim();
   rangoDuracion.value = Estado.ajustes.duracion;
   valorDuracion.textContent = Estado.ajustes.duracion + ' s';
   rangoVelocidad.value = Estado.ajustes.velocidad;
@@ -1304,7 +1217,6 @@ function actualizarDescripcionAnim() {
   valorAceleracion.textContent = '×' + Number(Estado.ajustes.aceleracion).toFixed(1);
   checkSonido.checked = !!Estado.ajustes.sonido;
   seleccionAlElegir.value = Estado.ajustes.alElegir;
-  actualizarEtiquetaProgresion();   // ¿por dónde va la progresión (o el mazo)?
 
   // 5) Motor + lista inicial (el canvas de polvo va superpuesto al de la rueda)
   Motor.iniciar(lienzo, contenedorLienzo, lienzoPolvo);
